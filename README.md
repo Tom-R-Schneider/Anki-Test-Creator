@@ -1,2 +1,2 @@
-# Vocab-Test-Creator
+# Anki-Test-Creator
 application used to create tests from Anki flashcards
