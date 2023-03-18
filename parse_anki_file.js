@@ -3,6 +3,7 @@ const Database = require('better-sqlite3');
 
 anki_file = "anki_example_file/All Decks.apkg"
 
+
 const zip = new AdmZip(anki_file);
 var zipEntries = zip.getEntries();
 
@@ -13,9 +14,6 @@ for (var i = 0; i < zipEntries.length; i++) {
         const db = new Database(anki2_data);
         const files = db.prepare("select name from sqlite_master where type='table'").all();
         console.log(files);
-        console.log(db.prepare("select * from revlog").all());
-        console.log(db.prepare("select * from cards").all());
-        console.log(db.prepare("select * from notes").all());
         let deck_graph = get_apkg_deck_graph(db);
         db.close();
     }
@@ -47,6 +45,7 @@ function get_apkg_deck_graph(db) {
             }
             curr_branch = curr_branch[deck];
         }
+        
         // Get card models and columns if there are cards in the current deck
         card_count = db.prepare("select count (*) from cards where did = '"+ decks[deck_id].id +"'").all();
         card_count = card_count[0]["count (*)"];
