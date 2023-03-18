@@ -24,10 +24,10 @@ for (var i = 0; i < zipEntries.length; i++) {
 
 function get_apkg_deck_graph(db) {
 
-    let undefined_counter = 0;
     let models = db.prepare("select * from col").all();
     models = JSON.parse(models[0].models);
-    let deck_graph = {};
+    let deck_graph = {}; // JSON to store final anki deck graph
+    let used_models = {}; // Used to track models and their cleaned up columns to reduce processing steps
     let decks = db.prepare("select decks from col").all();
     decks = JSON.parse(decks[0].decks);
     for (let deck_id in decks) {
@@ -67,8 +67,16 @@ function get_apkg_deck_graph(db) {
             let card_note = db.prepare("select * from notes where id = '" + example_card.nid + "'").all();
             card_note = card_note[0];
             let card_model = models[card_note.mid]
-            curr_branch.model.model_used = card_model.id;     
-            //TODO: Fetch all columns used by model  
+            curr_branch.model.model_used = card_model.id;    
+            // Push column names into list to use later
+            if (!used_models[card_model.id]) {
+                let columns = [];
+                for (let column of card_model.flds) {
+                    columns.push(column.name);
+                }
+                used_models[card_model.id] = columns;
+            }
+            curr_branch.model.columns = used_models[card_model.id];
         }    
     }
 
