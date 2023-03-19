@@ -57,6 +57,7 @@ function get_apkg_deck_graph(db) {
             example_card = example_card[0];
 
             curr_branch["model"] = {
+                "dict_id": decks[deck_id].id,
                 "card_count": card_count,
                 "columns": [],
                 "model_used": "" 
@@ -81,4 +82,24 @@ function get_apkg_deck_graph(db) {
 
     console.log(deck_graph);
     return deck_graph;
+}
+
+
+function create_solution_excel(db, selected_decks, number_of_tests, number_of_rows) {
+
+    //TODO: Create code to get all cards and their data for selected decks
+    for (let i = 0; i < number_of_tests; i++) {
+
+        let excel_columns = [];
+
+        // Get Columns for header
+        let header_columns = selected_decks[0].columns;
+        excel_columns.push(header_columns);
+    
+        // Get data for each card selected
+        for (let j = 0; j < number_of_rows; j++) {
+    
+        }
+    }
+
 }
