@@ -15,6 +15,7 @@ for (var i = 0; i < zipEntries.length; i++) {
         const files = db.prepare("select name from sqlite_master where type='table'").all();
         console.log(files);
         let deck_graph = get_apkg_deck_graph(db);
+        preconfigure_calculation_inputs(db);
         db.close();
     }
 }
@@ -60,7 +61,8 @@ function get_apkg_deck_graph(db) {
                 "dict_id": decks[deck_id].id,
                 "card_count": card_count,
                 "columns": [],
-                "model_used": "" 
+                "model_used": "",
+                "selected": false
             };
 
             // Get card model used for dict
@@ -84,22 +86,90 @@ function get_apkg_deck_graph(db) {
     return deck_graph;
 }
 
+// Used to preconfigure input data for create_solution_excel
+function preconfigure_calculation_inputs(db) {
 
-function create_solution_excel(db, selected_decks, number_of_tests, number_of_rows) {
+
+
+    let selected_decks = [1668817277940]; // Used as example
+
+    let columns = {
+        0: {
+            name: "Front",
+            active: true,
+            randomized: true,
+            always_shown: false,
+            never_shown: false,
+            newly_added: false
+        },
+        1: {
+            name: "Back",
+            active: true,
+            randomized: true,
+            always_shown: false,
+            never_shown: false,
+            newly_added: false
+        }
+    };
+    create_solution_excel(db, selected_decks, columns, 1, 20, 1);
+}
+
+function create_solution_excel(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
+
+    // Get all cards from selected decks
+    let all_cards = [];
+    for (let selected_deck of selected_decks) {
+        let deck_cards = db.prepare("select * from cards where did = '"+ selected_deck +"'").all();
+        all_cards.push(...deck_cards);    
+    }
+
+    // Get column positions of selected columns
+    let random_col = [];
+    let always_shown_col = [];
+    let header_col = [];
+    let inactive_col = [];
+    for (let column_id in columns) {
+        if (columns[column_id].active) {
+            header_col.push(columns[column_id].name);
+            if (columns[column_id].randomized) {
+                random_col.push(column_id);
+            } else if (columns[column_id].always_shown) {
+                always_shown_col.push(column_id);
+            }
+        } else {
+            inactive_col.push(column_id);
+        }
+    }
 
     //TODO: Create code to get all cards and their data for selected decks
     for (let i = 0; i < number_of_tests; i++) {
-
+        let curr_test_cards = all_cards;
         let excel_columns = [];
 
-        // Get Columns for header
-        let header_columns = selected_decks[0].columns;
-        excel_columns.push(header_columns);
+        excel_columns.push(header_col);
     
         // Get data for each card selected
         for (let j = 0; j < number_of_rows; j++) {
-    
+
+            // Select random card and remove it from current deck of cards
+            let random_card_number = Math.floor(Math.random() * curr_test_cards.length);
+            let random_card = curr_test_cards[random_card_number];
+            curr_test_cards.splice(random_card_number, 1);
+            let card_note = db.prepare("select * from notes where id = '" + random_card.nid + "'").all();
+            console.log(card_note);
+            card_note = card_note[0];
+            card_data = card_note.flds;
+            card_data = card_data.split("");
+            console.log(card_data);
+
+            for (let inactive_c of inactive_col) {
+                card_data.splice(inactive_c, 1);
+            }
+            excel_columns.push(card_data);
+
         }
+        console.log(excel_columns);
+        console.log("check");
     }
 
 }
