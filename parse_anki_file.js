@@ -111,10 +111,10 @@ function preconfigure_calculation_inputs(db) {
             newly_added: false
         }
     };
-    create_solution_excel(db, selected_decks, columns, 1, 20, 1);
+    create_excels(db, selected_decks, columns, 1, 20, 1);
 }
 
-function create_solution_excel(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
+function create_excels(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
 
     // Get all cards from selected decks
     let all_cards = [];
@@ -128,6 +128,7 @@ function create_solution_excel(db, selected_decks, columns, number_of_tests, num
     let always_shown_col = [];
     let header_col = [];
     let inactive_col = [];
+    let never_shown_col = [];
     for (let column_id in columns) {
         if (columns[column_id].active) {
             header_col.push(columns[column_id].name);
@@ -135,6 +136,8 @@ function create_solution_excel(db, selected_decks, columns, number_of_tests, num
                 random_col.push(column_id);
             } else if (columns[column_id].always_shown) {
                 always_shown_col.push(column_id);
+            } else if(columns[column_id].never_shown) {
+                never_shown_col.push(column_id);
             }
         } else {
             inactive_col.push(column_id);
@@ -143,10 +146,12 @@ function create_solution_excel(db, selected_decks, columns, number_of_tests, num
 
     //TODO: Create code to get all cards and their data for selected decks
     for (let i = 0; i < number_of_tests; i++) {
-        let curr_test_cards = all_cards;
-        let excel_columns = [];
+        let curr_test_cards = JSON.parse(JSON.stringify(all_cards));
+        let sol_excel_columns = [];
+        let quest_excel_columns = [];
 
-        excel_columns.push(header_col);
+        sol_excel_columns.push(header_col);
+        quest_excel_columns.push(header_col);
     
         // Get data for each card selected
         for (let j = 0; j < number_of_rows; j++) {
@@ -161,14 +166,32 @@ function create_solution_excel(db, selected_decks, columns, number_of_tests, num
             card_data = card_note.flds;
             card_data = card_data.split("");
             console.log(card_data);
+            quest_card_data = JSON.parse(JSON.stringify(card_data));
 
+            for (let never_shown of never_shown_col) {
+                quest_card_data[never_shown] = "";
+            }
+
+            let random_col_temp = JSON.parse(JSON.stringify(random_col));
+            for (let r = 0; r < number_of_random_cols; r++) {
+
+                let random_card_number = Math.floor(Math.random() * random_col_temp.length);
+                let random_column = random_col_temp[random_card_number];
+                random_col_temp.splice(random_column, 1);
+                quest_card_data[random_column] = "";
+            }
+
+            // Remove inactive columns
             for (let inactive_c of inactive_col) {
                 card_data.splice(inactive_c, 1);
+                quest_card_data.splice(inactive_c, 1);
             }
-            excel_columns.push(card_data);
+            sol_excel_columns.push(card_data);
+            quest_excel_columns.push(quest_card_data);
 
         }
-        console.log(excel_columns);
+        console.log(sol_excel_columns);
+        console.log(quest_excel_columns);
         console.log("check");
     }
 
