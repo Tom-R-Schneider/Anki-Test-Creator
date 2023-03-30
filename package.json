@@ -1,6 +1,8 @@
 {
   "dependencies": {
     "adm-zip": "^0.5.10",
-    "better-sqlite3": "^8.2.0"
+    "better-sqlite3": "^8.2.0",
+    "mongodb": "^5.1.0",
+    "original-fs": "^1.2.0"
   }
 }

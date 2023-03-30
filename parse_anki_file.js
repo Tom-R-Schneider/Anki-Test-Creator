@@ -1,27 +1,28 @@
-const AdmZip = require("adm-zip");
-const Database = require('better-sqlite3');
-
-anki_file = "anki_example_file/All Decks.apkg"
+const {AdmZip} = require("adm-zip");
+const {Database} = require('better-sqlite3'); // TODO: look for a new in-memory db that works in the browser
 
 
-const zip = new AdmZip(anki_file);
-var zipEntries = zip.getEntries();
+window.process_file_upload = function(anki_file) {
+    // anki_file = "anki_example_file/All Decks.apkg";
 
-for (var i = 0; i < zipEntries.length; i++) {
-    if (zipEntries[i].entryName == "collection.anki21") {
+    const zip = new AdmZip(anki_file);
+    var zipEntries = zip.getEntries();
 
-        let anki2_data = zipEntries[i].getData();
-        const db = new Database(anki2_data);
-        const files = db.prepare("select name from sqlite_master where type='table'").all();
-        console.log(files);
-        let deck_graph = get_apkg_deck_graph(db);
-        preconfigure_calculation_inputs(db);
-        db.close();
+    for (var i = 0; i < zipEntries.length; i++) {
+        if (zipEntries[i].entryName == "collection.anki21") {
+
+            let anki2_data = zipEntries[i].getData();
+            const db = new Database(anki2_data);
+            const files = db.prepare("select name from sqlite_master where type='table'").all();
+            console.log(files);
+            //let deck_graph = window.get_apkg_deck_graph(db);
+            //window.preconfigure_calculation_inputs(db);
+            db.close();
+        }
     }
 }
 
-
-function get_apkg_deck_graph(db) {
+window.get_apkg_deck_graph = function(db) {
 
     let models = db.prepare("select * from col").all();
     models = JSON.parse(models[0].models);
@@ -86,8 +87,8 @@ function get_apkg_deck_graph(db) {
     return deck_graph;
 }
 
-// Used to preconfigure input data for create_solution_excel
-function preconfigure_calculation_inputs(db) {
+//Used to preconfigure input data for create_solution_excel
+window.preconfigure_calculation_inputs = function(db) {
 
 
 
@@ -111,10 +112,10 @@ function preconfigure_calculation_inputs(db) {
             newly_added: false
         }
     };
-    create_excels(db, selected_decks, columns, 1, 20, 1);
+    window.create_excels(db, selected_decks, columns, 1, 20, 1);
 }
 
-function create_excels(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
+window.create_excels = function(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
 
     // Get all cards from selected decks
     let all_cards = [];
@@ -192,7 +193,5 @@ function create_excels(db, selected_decks, columns, number_of_tests, number_of_r
         }
         console.log(sol_excel_columns);
         console.log(quest_excel_columns);
-        console.log("check");
     }
-
 }
