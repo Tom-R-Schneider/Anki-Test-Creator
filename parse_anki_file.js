@@ -1,25 +1,24 @@
-const {AdmZip} = require("adm-zip");
-const {Database} = require('better-sqlite3'); // TODO: look for a new in-memory db that works in the browser
+const JSZip = require("jszip");
+const initSqlJs = require("sql.js");
+
+// Required to let webpack 4 know it needs to copy the wasm file to our assets
+//const sqlWasm = require("https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js");
 
 
 window.process_file_upload = function(anki_file) {
     // anki_file = "anki_example_file/All Decks.apkg";
+    console.log(anki_file);
 
-    const zip = new AdmZip(anki_file);
-    var zipEntries = zip.getEntries();
-
-    for (var i = 0; i < zipEntries.length; i++) {
-        if (zipEntries[i].entryName == "collection.anki21") {
-
-            let anki2_data = zipEntries[i].getData();
-            const db = new Database(anki2_data);
-            const files = db.prepare("select name from sqlite_master where type='table'").all();
-            console.log(files);
-            //let deck_graph = window.get_apkg_deck_graph(db);
-            //window.preconfigure_calculation_inputs(db);
-            db.close();
+    unzipFile(anki_file, async function(fileData) {
+        if (fileData) {
+            const SQL = await initSqlJs({ locateFile: file => `https://sql.js.org/dist/${file}` });
+            const db = new SQL.Database(fileData);
+            const return_rslt = db.exec("SELECT * FROM col");
+            console.log(return_rslt);
         }
-    }
+    
+    });
+
 }
 
 window.get_apkg_deck_graph = function(db) {
@@ -194,4 +193,32 @@ window.create_excels = function(db, selected_decks, columns, number_of_tests, nu
         console.log(sol_excel_columns);
         console.log(quest_excel_columns);
     }
+}
+
+function unzipFile(inputZipFile, callback){
+    // Create a new instance of the zip object
+    var zip = new JSZip();
+  
+    // Use the FileReader API to read the contents of the inputZipFile
+    var reader = new FileReader();
+    reader.onload = function(event){
+      // Add the contents of the file to the zip object
+        zip.loadAsync(event.target.result).then(function(zip) {
+        // List all the files in the zip object
+        zip.forEach(function (relativePath, zipEntry) {
+            if (relativePath == "collection.anki21") {
+                zipEntry.async("uint8array").then(function (fileData) {
+                    console.log("File: " + relativePath);
+                    console.log("Data: " + fileData);
+                    callback(fileData);
+                  });
+            }
+          // Extract each file from the zip object and log it to the console
+
+        });
+      });
+    };
+  
+    // Read the inputZipFile as an arraybuffer
+    reader.readAsArrayBuffer(inputZipFile);
 }

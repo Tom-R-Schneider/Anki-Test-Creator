@@ -14,12 +14,12 @@
       <script>
         function upload_file(){
             let file = document.getElementById("file").files[0];
-            console.log("test");
-			console.log(file);
-			window.get_apkg_deck_graph(file);
+            window.process_file_upload(file);
+
 
 			
         }
+        
       </script>
    </body>
 	
