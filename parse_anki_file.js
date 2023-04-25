@@ -23,11 +23,11 @@ window.process_file_upload = function(anki_file) {
 
 window.get_apkg_deck_graph = function(db) {
 
-    let models = db.prepare("select * from col").all();
+    let models = db.exec("select * from col");
     models = JSON.parse(models[0].models);
     let deck_graph = {}; // JSON to store final anki deck graph
     let used_models = {}; // Used to track models and their cleaned up columns to reduce processing steps
-    let decks = db.prepare("select decks from col").all();
+    let decks = db.exec("select decks from col");
     decks = JSON.parse(decks[0].decks);
     for (let deck_id in decks) {
 
@@ -48,13 +48,13 @@ window.get_apkg_deck_graph = function(db) {
         }
         
         // Get card models and columns if there are cards in the current deck
-        card_count = db.prepare("select count (*) from cards where did = '"+ decks[deck_id].id +"'").all();
+        card_count = db.exec("select count (*) from cards where did = '"+ decks[deck_id].id +"'");
         card_count = card_count[0]["count (*)"];
 
         if (card_count > 0) {
 
             // One card needed to route from dict to model
-            example_card = db.prepare("select * from cards where did = '"+ decks[deck_id].id +"' limit 0, 1").all();
+            example_card = db.exec("select * from cards where did = '"+ decks[deck_id].id +"' limit 0, 1");
             example_card = example_card[0];
 
             curr_branch["model"] = {
@@ -66,7 +66,7 @@ window.get_apkg_deck_graph = function(db) {
             };
 
             // Get card model used for dict
-            let card_note = db.prepare("select * from notes where id = '" + example_card.nid + "'").all();
+            let card_note = db.exec("select * from notes where id = '" + example_card.nid + "'");
             card_note = card_note[0];
             let card_model = models[card_note.mid]
             curr_branch.model.model_used = card_model.id;    
@@ -119,7 +119,7 @@ window.create_excels = function(db, selected_decks, columns, number_of_tests, nu
     // Get all cards from selected decks
     let all_cards = [];
     for (let selected_deck of selected_decks) {
-        let deck_cards = db.prepare("select * from cards where did = '"+ selected_deck +"'").all();
+        let deck_cards = db.exec("select * from cards where did = '"+ selected_deck +"'");
         all_cards.push(...deck_cards);    
     }
 
@@ -160,7 +160,7 @@ window.create_excels = function(db, selected_decks, columns, number_of_tests, nu
             let random_card_number = Math.floor(Math.random() * curr_test_cards.length);
             let random_card = curr_test_cards[random_card_number];
             curr_test_cards.splice(random_card_number, 1);
-            let card_note = db.prepare("select * from notes where id = '" + random_card.nid + "'").all();
+            let card_note = db.exec("select * from notes where id = '" + random_card.nid + "'");
             console.log(card_note);
             card_note = card_note[0];
             card_data = card_note.flds;
