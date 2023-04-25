@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Button Click Example</title>
+</head>
+<link rel="stylesheet" href="webpage_design.css">
+
+<body>
+  <!-- Buttons -->
+  <div>
+    <button class="button" onclick="showContent('button1')">Button 1</button>
+    <button class="button" onclick="showContent('button2')">Button 2</button>
+    <button class="button" onclick="showContent('button3')">Button 3</button>
+  </div>
+
+  <!-- Content -->
+  <div class="content" id="content">
+  </div>
+
+  <script>
+    // JavaScript function to change content based on button clicked
+    function showContent(buttonId) {
+      var content = document.getElementById('content');
+      var xhr= new XMLHttpRequest();
+
+      switch (buttonId) {
+        case 'button1':
+        xhr.open('GET', 'vocab_test.html', true);
+        xhr.onreadystatechange= function() {
+            if (this.readyState!==4) return;
+            if (this.status!==200) return; // or whatever error handling you want
+            content.innerHTML= this.responseText;
+        };
+        xhr.send();
+          content.innerHTML = '<p>Content for Button 1</p>';
+          break;
+        case 'button2':
+          content.innerHTML = '<p>Content for Button 2</p>';
+          break;
+        case 'button3':
+          content.innerHTML = '<p>Content for Button 3</p>';
+          break;
+        default:
+          content.innerHTML = '<p>Click a button to change the content.</p>';
+      }
+    }
+  </script>
+</body>
+
+</html>
