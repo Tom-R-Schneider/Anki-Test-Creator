@@ -1,0 +1,13 @@
+button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+  /* CSS for content */
+content {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #F0F0F0;
+}

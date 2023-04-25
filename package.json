@@ -1,6 +1,13 @@
 {
   "dependencies": {
     "adm-zip": "^0.5.10",
-    "better-sqlite3": "^8.2.0"
+    "better-sqlite3": "^8.2.0",
+    "jszip": "^3.10.1",
+    "mongodb": "^5.1.0",
+    "mysql": "^2.18.1",
+    "nedb": "^1.8.0",
+    "original-fs": "^1.2.0",
+    "sql": "^0.78.0",
+    "sql.js": "^1.8.0"
   }
 }
