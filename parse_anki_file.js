@@ -5,7 +5,7 @@ const initSqlJs = require("sql.js");
 //const sqlWasm = require("https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js");
 
 
-window.process_file_upload = function(anki_file) {
+window.process_file_upload = async function(anki_file, callback) {
     // anki_file = "anki_example_file/All Decks.apkg";
     console.log(anki_file);
 
@@ -15,6 +15,17 @@ window.process_file_upload = function(anki_file) {
             const db = new SQL.Database(fileData);
             const return_rslt = db.exec("SELECT * FROM col");
             console.log(return_rslt);
+            let deck_graph = window.get_apkg_deck_graph(db);
+            console.log("deck_graph");
+            console.log(deck_graph);
+            let html_graph = window.create_html_from_json(deck_graph);
+            console.log("html_graph");
+            console.log(html_graph);
+            let graphs = {
+                "deck_graph": deck_graph,
+                "html_graph": html_graph
+            };
+            callback(graphs);
         }
     
     });
@@ -23,12 +34,14 @@ window.process_file_upload = function(anki_file) {
 
 window.get_apkg_deck_graph = function(db) {
 
-    let models = db.exec("select * from col");
-    models = JSON.parse(models[0].models);
+    let models = db.exec("select models from col");
+    console.log("models");
+    console.log(models[0].values[0]);
+    models = JSON.parse(models[0].values[0]);
     let deck_graph = {}; // JSON to store final anki deck graph
     let used_models = {}; // Used to track models and their cleaned up columns to reduce processing steps
     let decks = db.exec("select decks from col");
-    decks = JSON.parse(decks[0].decks);
+    decks = JSON.parse(decks[0].values[0]);
     for (let deck_id in decks) {
 
         // Skip default deck as it is not needed for this graph
@@ -49,13 +62,15 @@ window.get_apkg_deck_graph = function(db) {
         
         // Get card models and columns if there are cards in the current deck
         card_count = db.exec("select count (*) from cards where did = '"+ decks[deck_id].id +"'");
-        card_count = card_count[0]["count (*)"];
+        console.log(card_count);
+        card_count = card_count[0].values[0][0];
 
         if (card_count > 0) {
 
             // One card needed to route from dict to model
-            example_card = db.exec("select * from cards where did = '"+ decks[deck_id].id +"' limit 0, 1");
-            example_card = example_card[0];
+            let example_card = db.exec("select nid from cards where did = '"+ decks[deck_id].id +"' limit 0, 1");
+            console.log(example_card);
+            let example_card_nid = example_card[0].values[0];
 
             curr_branch["model"] = {
                 "dict_id": decks[deck_id].id,
@@ -66,9 +81,10 @@ window.get_apkg_deck_graph = function(db) {
             };
 
             // Get card model used for dict
-            let card_note = db.exec("select * from notes where id = '" + example_card.nid + "'");
-            card_note = card_note[0];
-            let card_model = models[card_note.mid]
+            let card_note = db.exec("select mid from notes where id = '" + example_card_nid + "'");
+            console.log(card_note);
+            let card_note_mid = card_note[0].values[0];
+            let card_model = models[card_note_mid]
             curr_branch.model.model_used = card_model.id;    
             // Push column names into list to use later
             if (!used_models[card_model.id]) {
@@ -221,4 +237,31 @@ function unzipFile(inputZipFile, callback){
   
     // Read the inputZipFile as an arraybuffer
     reader.readAsArrayBuffer(inputZipFile);
+}
+
+window.create_html_from_json = function(input_json) {
+
+        // Create html string
+        let html_string = "";
+        html_string += "<ul>";
+        for (let sub_item_name in input_json) {
+            html_string += '<li><div><input type="checkbox" id="check' + html_string.length + '">' + sub_item_name + '</div>';
+            html_string = recursive_html_create(input_json[sub_item_name], html_string);        
+        }
+        html_string += "</ul>";
+        return html_string;
+}
+
+function recursive_html_create(item, html_string) {
+
+    if (!item.model) {
+        html_string += "<ul>";
+        for (let sub_item_name in item) {
+            html_string += '<li><div><input type="checkbox" id="' + html_string.length + '">' + sub_item_name + '</div>';
+            html_string = recursive_html_create(item[sub_item_name], html_string);
+        }
+        html_string += "</ul>";
+    }
+    return html_string;
+
 }

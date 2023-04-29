@@ -5,7 +5,18 @@
   <title>Button Click Example</title>
 </head>
 <link rel="stylesheet" href="webpage_design.css">
-
+<script src="out.js"></script>
+<script>
+  async function parse_input() {
+    let file = document.getElementById('file_input').files[0];
+    console.log(file);
+    window.process_file_upload(file, function(graphs) {
+      console.log('graphs');
+      console.log(graphs);
+      document.getElementById('deck_list').innerHTML = graphs.html_graph
+    });
+  }
+</script>
 <body>
   <!-- Buttons -->
   <div>
@@ -32,11 +43,23 @@
             if (this.status!==200) return; // or whatever error handling you want
             content.innerHTML= this.responseText;
         };
-        xhr.send();
-          content.innerHTML = '<p>Content for Button 1</p>';
           break;
         case 'button2':
-          content.innerHTML = '<p>Content for Button 2</p>';
+        xhr.open('GET', 'learning_plan.html', true);
+        xhr.onreadystatechange= function() {
+            if (this.readyState!==4) return;
+            if (this.status!==200) return; // or whatever error handling you want
+            content.innerHTML= this.responseText;
+            console.log("Working");
+    let input = {"one": {"one": [1, 2],
+"two": ""
+},
+    "two": [1, 2, 3],
+    "three": ""
+} 
+    let html_list = window.create_html_from_json(input);
+    document.getElementById('deck_list').innerHTML = html_list;
+        };
           break;
         case 'button3':
           content.innerHTML = '<p>Content for Button 3</p>';
@@ -44,6 +67,7 @@
         default:
           content.innerHTML = '<p>Click a button to change the content.</p>';
       }
+      xhr.send();
     }
   </script>
 </body>
