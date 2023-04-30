@@ -4,10 +4,15 @@ const initSqlJs = require("sql.js");
 // Required to let webpack 4 know it needs to copy the wasm file to our assets
 //const sqlWasm = require("https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js");
 
+var deck_info = {};
+var selected_decks = {};
+var selected_columns = {};
+
 
 window.process_file_upload = async function(anki_file, callback) {
     // anki_file = "anki_example_file/All Decks.apkg";
     console.log(anki_file);
+    deck_info = {};
 
     unzipFile(anki_file, async function(fileData) {
         if (fileData) {
@@ -23,7 +28,8 @@ window.process_file_upload = async function(anki_file, callback) {
             console.log(html_graph);
             let graphs = {
                 "deck_graph": deck_graph,
-                "html_graph": html_graph
+                "html_graph": html_graph,
+                "deck_info": deck_info
             };
             callback(graphs);
         }
@@ -243,25 +249,86 @@ window.create_html_from_json = function(input_json) {
 
         // Create html string
         let html_string = "";
+        let counter = 0;
+        html_string += '<li><div>Your Decks</div>';
         html_string += "<ul>";
         for (let sub_item_name in input_json) {
-            html_string += '<li><div><input type="checkbox" id="check' + html_string.length + '">' + sub_item_name + '</div>';
-            html_string = recursive_html_create(input_json[sub_item_name], html_string);        
+            counter++;
+            html_string += '<li><div><input type="checkbox" onclick="window.handle_deck_click(this)" id="checkbox' + counter + '">' + sub_item_name + '</div>';
+            if (!input_json[sub_item_name].model) {
+            [html_string, counter] = recursive_html_create(input_json[sub_item_name], html_string, counter);     
+            } else {
+                deck_info["checkbox" + counter] = input_json[sub_item_name];
+            }   
         }
         html_string += "</ul>";
         return html_string;
 }
 
-function recursive_html_create(item, html_string) {
-
+function recursive_html_create(item, html_string, counter) {
     if (!item.model) {
         html_string += "<ul>";
         for (let sub_item_name in item) {
-            html_string += '<li><div><input type="checkbox" id="' + html_string.length + '">' + sub_item_name + '</div>';
-            html_string = recursive_html_create(item[sub_item_name], html_string);
+            counter++;
+            html_string += '<li><div><input type="checkbox" onclick="handle_deck_click(this)" id="checkbox' + counter + '">' + sub_item_name + '</div>';
+            [html_string, counter] = recursive_html_create(item[sub_item_name], html_string, counter);
         }
         html_string += "</ul>";
+    } else {
+        console.log("Deck Info");
+        console.log(deck_info);
+        console.log(item);
+        deck_info["checkbox" + counter] = item;
     }
-    return html_string;
+    return [html_string, counter];
 
+}
+
+window.get_deck_info_for_id = function(column_id) {
+    let selected_deck = deck_info[column_id];
+    console.log(deck_info);
+    console.log(selected_deck);
+    let columns = selected_deck.model.columns;
+    return columns;
+
+}
+
+window.get_option_html_for_learning_plan = function() {
+    let html_string = "";
+    html_string += "<div><h1>Options</h1></div>";
+    html_string += '<label for="start_date">Start Date:</label><input type="date" id="start_date" name="start_date">';
+    html_string += '<div><input type="radio" id="days_duration" name="learning_duration" value="number of days" checked><label for="days_duration">Number of Days: <input type="number" id="input_days" name="days" min="1"></label></div>';
+    html_string += '<div><input type="radio" id="date_duration" name="learning_duration" value="End Date"><label for="date_duration">End Date: </label><input type="date" id="end_date" name="end_date"></div>';
+    html_string += '<div><input type="checkbox" id="merge_bool" name="merge"><label for="date_duration">Merge decks</label></div>';
+
+
+    return html_string;
+}
+
+window.create_anki_learning_plan = function(decks, columns, merge_bool, start_date, end_date) {
+ 
+}
+
+window.get_checked_columns = function() {
+    return selected_columns;
+}
+
+window.get_checked_decks = function() {
+    return selected_decks;
+}
+
+window.change_checked_deck = function(check_box_id, checked) {
+    if (checked) {
+        selected_decks[check_box_id] = "";
+    } else {
+        delete selected_decks[check_box_id];
+    }
+}
+
+window.change_checked_column = function(check_box_id, checked) {
+    if (checked) {
+        selected_columns[check_box_id] = "";
+    } else {
+        delete selected_columns[check_box_id];
+    }
 }
