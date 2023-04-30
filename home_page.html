@@ -5,7 +5,78 @@
   <title>Button Click Example</title>
 </head>
 <link rel="stylesheet" href="webpage_design.css">
+<script src="out.js"></script>
+<script>
+  async function parse_input() {
+    let file = document.getElementById('file_input').files[0];
+    console.log(file);
+    window.process_file_upload(file, function(graphs) {
+      console.log('graphs');
+      console.log(graphs);
+      document.getElementById('deck_list').innerHTML = graphs.html_graph
+      document.getElementById('column_names').innerHTML = "<div>Select a deck to show columns</div>"
+      let html_options = window.get_option_html_for_learning_plan();
+    console.log(html_options);
+    document.getElementById('options').innerHTML = html_options;
+    document.getElementById('start_date').valueAsDate = new Date();
+    });
+  }
+  function handle_deck_click(check_box) {
+    console.log(check_box);
+    if (check_box.checked) {
+      console.log("yes");
+      console.log(check_box.id);
+      let columns = window.get_deck_info_for_id(check_box.id)
+        // Create html string
+        let html_string = "";
+        let counter = 0;
+        html_string += '<li><div>Your selected Deck Columns</div>';
+        html_string += "<ul>";
+        for (let column of columns) {
+            html_string += '<li><div><input type="checkbox" checked="true" onclick="handle_column_click(this)" id="check' + column + '">' + column + '</div>';
+            window.change_checked_column("check" + column, true);    
+        }
+        html_string += "</ul>";
+        document.getElementById('column_names').innerHTML = html_string;
 
+
+    } else {
+      console.log("no");
+    }
+    window.change_checked_deck(check_box.id, check_box.checked);
+  }
+
+  function create_learning_plan() {
+
+    let decks = window.get_checked_decks()
+    let columns = window.get_checked_columns();
+    let merge_bool = document.getElementById('merge_bool').checked;
+    let start_date = new Date(document.getElementById('start_date').value);
+    let end_date;
+    console.log("here");
+    console.log(document.getElementById('date_duration').checked);
+    if (document.getElementById('date_duration').checked) {
+      console.log(document.getElementById('end_date').value);
+      end_date = new Date(document.getElementById('end_date').value);
+    } else {
+      let duration_days = document.getElementById('input_days').value;
+      console.log(document.getElementById('input_days').value);
+      end_date = new Date(document.getElementById('start_date').value);
+      end_date.setDate(end_date.getDate() + parseInt(duration_days));
+    }
+
+    console.log(decks);
+    console.log(columns);
+    console.log(merge_bool);
+    console.log(start_date);
+    console.log(end_date);
+    let learning_plan = window.create_anki_learning_plan(decks, columns, merge_bool, start_date, end_date);
+  }
+  function handle_column_click(check_box) {
+
+    window.change_checked_column(check_box.id, check_box.checked);
+  }
+</script>
 <body>
   <!-- Buttons -->
   <div>
@@ -32,11 +103,17 @@
             if (this.status!==200) return; // or whatever error handling you want
             content.innerHTML= this.responseText;
         };
-        xhr.send();
-          content.innerHTML = '<p>Content for Button 1</p>';
           break;
         case 'button2':
-          content.innerHTML = '<p>Content for Button 2</p>';
+        xhr.open('GET', 'learning_plan.html', true);
+        xhr.onreadystatechange= function() {
+            if (this.readyState!==4) return;
+            if (this.status!==200) return; // or whatever error handling you want
+            content.innerHTML= this.responseText;
+            document.getElementById('deck_list').innerHTML = "<div>Upload your apkg file to show deck list</div>";
+            document.getElementById('column_names').innerHTML = "<div>Upload your apkg file to show column names</div>";
+            document.getElementById('options').innerHTML = "<div>Upload your apkg file to show options</div>";
+        };
           break;
         case 'button3':
           content.innerHTML = '<p>Content for Button 3</p>';
@@ -44,6 +121,7 @@
         default:
           content.innerHTML = '<p>Click a button to change the content.</p>';
       }
+      xhr.send();
     }
   </script>
 </body>
