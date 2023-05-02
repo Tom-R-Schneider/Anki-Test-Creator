@@ -7,6 +7,7 @@ const initSqlJs = require("sql.js");
 var deck_info = {};
 var selected_decks = {};
 var selected_columns = {};
+var db;
 
 
 window.process_file_upload = async function(anki_file, callback) {
@@ -17,7 +18,7 @@ window.process_file_upload = async function(anki_file, callback) {
     unzipFile(anki_file, async function(fileData) {
         if (fileData) {
             const SQL = await initSqlJs({ locateFile: file => `https://sql.js.org/dist/${file}` });
-            const db = new SQL.Database(fileData);
+            db = new SQL.Database(fileData);
             const return_rslt = db.exec("SELECT * FROM col");
             console.log(return_rslt);
             let deck_graph = window.get_apkg_deck_graph(db);
@@ -47,7 +48,35 @@ window.get_apkg_deck_graph = function(db) {
     let deck_graph = {}; // JSON to store final anki deck graph
     let used_models = {}; // Used to track models and their cleaned up columns to reduce processing steps
     let decks = db.exec("select decks from col");
+    let check_deck = decks[0].values[0];
+    console.log("this");
+    console.log(decks);
     decks = JSON.parse(decks[0].values[0]);
+    console.log("there");
+    console.log(decks);
+    let check_json = {
+        id:  1637081661111,
+        name: "testing123",
+        desc: "a test",
+        mod: 1669571111,
+    };
+    decks[check_json.id + ""] = check_json;
+    //delete decks["1637081661111"]
+    console.log("compare");
+    console.log(check_deck);
+    console.log(JSON.stringify(decks));
+    let fixed_string = JSON.stringify(decks);
+    fixed_string = fixed_string.replaceAll("'", "''");
+    //fixed_string = fixed_string.replace("<a href=''https://ankiweb.net/shared/info/''>shared deck page</a>", "");
+    console.log(fixed_string);
+
+    console.log(0);
+    db.exec("update col set decks = '" + fixed_string + "'"); //+ JSON.stringify(decks) + "'" );
+    console.log(1);
+    let check = db.exec("select decks from col");
+    console.log(2);
+    console.log(JSON.parse(check[0].values[0]));
+    console.log(3);
     for (let deck_id in decks) {
 
         // Skip default deck as it is not needed for this graph
@@ -83,7 +112,8 @@ window.get_apkg_deck_graph = function(db) {
                 "card_count": card_count,
                 "columns": [],
                 "model_used": "",
-                "selected": false
+                "name": (decks[deck_id].name).replaceAll("::", "-").replaceAll(" ", "_")
+            //    "selected": false
             };
 
             // Get card model used for dict
@@ -232,6 +262,7 @@ function unzipFile(inputZipFile, callback){
                 zipEntry.async("uint8array").then(function (fileData) {
                     console.log("File: " + relativePath);
                     console.log("Data: " + fileData);
+                    console.log(new TextDecoder().decode(fileData));
                     callback(fileData);
                   });
             }
@@ -252,9 +283,10 @@ window.create_html_from_json = function(input_json) {
         let counter = 0;
         html_string += '<li><div>Your Decks</div>';
         html_string += "<ul>";
+        
         for (let sub_item_name in input_json) {
             counter++;
-            html_string += '<li><div><input type="checkbox" onclick="window.handle_deck_click(this)" id="checkbox' + counter + '">' + sub_item_name + '</div>';
+            html_string += '<li><div><input type="checkbox" onclick="window.handle_deck_click(this)" id="checkbox' + counter + '" name="' + sub_item_name + '">' + sub_item_name + '</div>';
             if (!input_json[sub_item_name].model) {
             [html_string, counter] = recursive_html_create(input_json[sub_item_name], html_string, counter);     
             } else {
@@ -305,7 +337,7 @@ window.get_option_html_for_learning_plan = function() {
     return html_string;
 }
 
-window.create_anki_learning_plan = function(decks, columns, merge_bool, start_date, end_date) {
+window.create_anki_learning_plan = function(decks, columns, start_date, end_date) {
  
 }
 
@@ -318,14 +350,16 @@ window.get_checked_decks = function() {
 }
 
 window.change_checked_deck = function(check_box_id, checked) {
+
     if (checked) {
-        selected_decks[check_box_id] = "";
+        selected_decks[check_box_id] = deck_info[check_box_id];
     } else {
         delete selected_decks[check_box_id];
     }
 }
 
 window.change_checked_column = function(check_box_id, checked) {
+
     if (checked) {
         selected_columns[check_box_id] = "";
     } else {

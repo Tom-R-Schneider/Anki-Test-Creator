@@ -33,7 +33,7 @@
         html_string += '<li><div>Your selected Deck Columns</div>';
         html_string += "<ul>";
         for (let column of columns) {
-            html_string += '<li><div><input type="checkbox" checked="true" onclick="handle_column_click(this)" id="check' + column + '">' + column + '</div>';
+            html_string += '<li><div><input type="checkbox" checked="true" onclick="handle_column_click(this)" id="check' + column + '" name="'+ column +'" >' + column + '</div>';
             window.change_checked_column("check" + column, true);    
         }
         html_string += "</ul>";
@@ -48,9 +48,11 @@
 
   function create_learning_plan() {
 
-    let decks = window.get_checked_decks()
-    let columns = window.get_checked_columns();
-    let merge_bool = document.getElementById('merge_bool').checked;
+    let decks = window.get_checked_decks();
+    let columns = window.get_checked_columns(); 
+    for(let column_id in columns) {
+      columns[column_id] = document.getElementById(column_id).getAttribute("name");
+    }    
     let start_date = new Date(document.getElementById('start_date').value);
     let end_date;
     console.log("here");
@@ -67,10 +69,9 @@
 
     console.log(decks);
     console.log(columns);
-    console.log(merge_bool);
     console.log(start_date);
     console.log(end_date);
-    let learning_plan = window.create_anki_learning_plan(decks, columns, merge_bool, start_date, end_date);
+    let learning_plan = window.create_anki_learning_plan(decks, columns, start_date, end_date);
   }
   function handle_column_click(check_box) {
 
