@@ -54,29 +54,6 @@ window.get_apkg_deck_graph = function(db) {
     decks = JSON.parse(decks[0].values[0]);
     console.log("there");
     console.log(decks);
-    let check_json = {
-        id:  1637081661111,
-        name: "testing123",
-        desc: "a test",
-        mod: 1669571111,
-    };
-    decks[check_json.id + ""] = check_json;
-    //delete decks["1637081661111"]
-    console.log("compare");
-    console.log(check_deck);
-    console.log(JSON.stringify(decks));
-    let fixed_string = JSON.stringify(decks);
-    fixed_string = fixed_string.replaceAll("'", "''");
-    //fixed_string = fixed_string.replace("<a href=''https://ankiweb.net/shared/info/''>shared deck page</a>", "");
-    console.log(fixed_string);
-
-    console.log(0);
-    db.exec("update col set decks = '" + fixed_string + "'"); //+ JSON.stringify(decks) + "'" );
-    console.log(1);
-    let check = db.exec("select decks from col");
-    console.log(2);
-    console.log(JSON.parse(check[0].values[0]));
-    console.log(3);
     for (let deck_id in decks) {
 
         // Skip default deck as it is not needed for this graph
@@ -136,34 +113,6 @@ window.get_apkg_deck_graph = function(db) {
 
     console.log(deck_graph);
     return deck_graph;
-}
-
-//Used to preconfigure input data for create_solution_excel
-window.preconfigure_calculation_inputs = function(db) {
-
-
-
-    let selected_decks = [1668817277940]; // Used as example
-
-    let columns = {
-        0: {
-            name: "Front",
-            active: true,
-            randomized: true,
-            always_shown: false,
-            never_shown: false,
-            newly_added: false
-        },
-        1: {
-            name: "Back",
-            active: true,
-            randomized: true,
-            always_shown: false,
-            never_shown: false,
-            newly_added: false
-        }
-    };
-    window.create_excels(db, selected_decks, columns, 1, 20, 1);
 }
 
 window.create_excels = function(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
@@ -337,8 +286,65 @@ window.get_option_html_for_learning_plan = function() {
     return html_string;
 }
 
-window.create_anki_learning_plan = function(decks, columns, start_date, end_date) {
+window.create_anki_learning_plan = function(decks, start_date, end_date) {
  
+    // Get all ids that you will need to create new ones of to make sure no ids are duplicated
+    let curr_decks = db.exec("select decks from col");
+    curr_decks = JSON.parse(deck_ids[0].values[0]);
+    let deck_creation_id = 1111111111111;
+    // TODO add other ids here as well
+
+    for (let deck_id in selected_decks) {
+
+        let temp_deck = {};
+        temp_deck = JSON.parse( JSON.stringify(curr_decks[deck_id]) ); // Done to get a copy of the selected deck
+
+        // Get new id for deck and make sure it is unique
+        let id_found = false;
+        while (id_found = false) {
+            if (!deck_creation_id in curr_decks) {
+                temp_deck.id = deck_creation_id;
+                id_found = true;
+            } else {
+                deck_creation_id++;
+            }
+        }
+        temp_deck.name = "Learning_Plan::" + selected_decks[deck_id].name;
+        temp_deck.desc = "Learning Plan for " + selected_decks[deck_id].name;
+        temp_deck.lrnToday = [0, 0];
+        temp_deck.newToday = [0, 0];
+        temp_deck.revToday = [0, 0];
+        temp_deck.timeToday = [0, 0];
+        temp_deck.mod; // TODO check what mod does
+        curr_decks[deck_creation_id] = temp_deck
+        console.log(deck_info);
+        let deck_model = selected_decks[deck_id].model_used;
+
+        // Get all deck cards
+        let deck_cards = db.exec("select * from cards where did = '"+ deck_id +"'");
+        deck_cards = deck_cards[0].values[0];
+
+
+
+
+
+
+
+
+
+
+
+        // Update db with new values
+        let fixed_deck_string = JSON.stringify(curr_decks);
+        fixed_string = fixed_string.replaceAll("'", "''");
+        db.exec("update col set decks = '" + fixed_string + "'");
+        // TODO do cards and notes too
+
+    }
+
+
+
+
 }
 
 window.get_checked_columns = function() {
