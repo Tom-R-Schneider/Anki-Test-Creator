@@ -8,6 +8,7 @@ var deck_info = {};
 var selected_decks = {};
 var selected_columns = {};
 var db;
+var zip;
 
 
 window.process_file_upload = async function(anki_file, callback) {
@@ -145,7 +146,6 @@ window.create_excels = function(db, selected_decks, columns, number_of_tests, nu
         }
     }
 
-    //TODO: Create code to get all cards and their data for selected decks
     for (let i = 0; i < number_of_tests; i++) {
         let curr_test_cards = JSON.parse(JSON.stringify(all_cards));
         let sol_excel_columns = [];
@@ -198,7 +198,7 @@ window.create_excels = function(db, selected_decks, columns, number_of_tests, nu
 
 function unzipFile(inputZipFile, callback){
     // Create a new instance of the zip object
-    var zip = new JSZip();
+    zip = new JSZip();
   
     // Use the FileReader API to read the contents of the inputZipFile
     var reader = new FileReader();
@@ -286,43 +286,138 @@ window.get_option_html_for_learning_plan = function() {
     return html_string;
 }
 
-window.create_anki_learning_plan = function(decks, start_date, end_date) {
+window.create_anki_learning_plan = function(decks, start_date, learning_days, callback) {
  
     // Get all ids that you will need to create new ones of to make sure no ids are duplicated
     let curr_decks = db.exec("select decks from col");
-    curr_decks = JSON.parse(deck_ids[0].values[0]);
+    curr_decks = JSON.parse(curr_decks[0].values[0]);
+
+    // Card ids are return as 2d array, so we need to loop through it to get all  
+    curr_cards = db.exec("select id from cards");
+    curr_cards = curr_cards[0].values;
+    let card_ids = [];
+    console.log(curr_cards);
+    for (let id_array of curr_cards) {
+        card_ids.push(id_array[0]);
+    }
+    console.log(card_ids);
+
+
     let deck_creation_id = 1111111111111;
-    // TODO add other ids here as well
+    let card_creation_id = 1111111111111;
+    let note_creation_id = 1111111111111;
 
-    for (let deck_id in selected_decks) {
-
-        let temp_deck = {};
-        temp_deck = JSON.parse( JSON.stringify(curr_decks[deck_id]) ); // Done to get a copy of the selected deck
+    for (let check_box_id in selected_decks) {
+        console.log(selected_decks);
+        let selected_deck_overhead = {};
+        let deck_id = deck_info[check_box_id].model.dict_id;
+        console.log(deck_info[check_box_id]);
+        selected_deck_overhead = JSON.parse( JSON.stringify(curr_decks[deck_id]) ); // Done to get a copy of the selected deck
+        console.log(selected_deck_overhead);
+        console.log(selected_decks[check_box_id]);
 
         // Get new id for deck and make sure it is unique
         let id_found = false;
-        while (id_found = false) {
-            if (!deck_creation_id in curr_decks) {
-                temp_deck.id = deck_creation_id;
+        while (id_found == false) {
+            if (!(deck_creation_id in curr_decks)) {
+                selected_deck_overhead.id = deck_creation_id;
+                curr_decks[deck_creation_id] = "";
                 id_found = true;
             } else {
                 deck_creation_id++;
             }
         }
-        temp_deck.name = "Learning_Plan::" + selected_decks[deck_id].name;
-        temp_deck.desc = "Learning Plan for " + selected_decks[deck_id].name;
-        temp_deck.lrnToday = [0, 0];
-        temp_deck.newToday = [0, 0];
-        temp_deck.revToday = [0, 0];
-        temp_deck.timeToday = [0, 0];
-        temp_deck.mod; // TODO check what mod does
-        curr_decks[deck_creation_id] = temp_deck
+        selected_deck_overhead.name = "Learning_Plan::" + selected_decks[check_box_id].model.name;
+        selected_deck_overhead.desc = "Learning Plan for " + selected_decks[check_box_id].model.name;
+        selected_deck_overhead.lrnToday = [0, 0];
+        selected_deck_overhead.newToday = [0, 0];
+        selected_deck_overhead.revToday = [0, 0];
+        selected_deck_overhead.timeToday = [0, 0];
+        selected_deck_overhead.mod; // TODO check what mod does
+        curr_decks[deck_creation_id] = selected_deck_overhead
         console.log(deck_info);
-        let deck_model = selected_decks[deck_id].model_used;
+        let deck_model = selected_decks[check_box_id].model.model_used;
 
         // Get all deck cards
         let deck_cards = db.exec("select * from cards where did = '"+ deck_id +"'");
-        deck_cards = deck_cards[0].values[0];
+        console.log("CARDS HERE");
+        console.log(deck_cards);
+        deck_cards = deck_cards[0].values;
+        console.log(deck_cards);
+
+        // Create deck for each date
+        let cards_per_day = Math.ceil(deck_cards.length / learning_days); 
+        console.log("CARDS PER DAY");
+        console.log(cards_per_day);
+        console.log(learning_days);
+        let overall_card_counter = 0;
+        for (let day_counter = 0; day_counter < learning_days; day_counter++) {
+            console.log("WORKS");
+            let curr_day = new Date();
+            curr_day.setDate(start_date.getDate() + day_counter);
+            let curr_day_string = curr_day.getFullYear() + "-" + (curr_day.getMonth() + 1).toString().padStart(2, '0') + "-" + curr_day.getDate().toString().padStart(2, '0');
+            let temp_deck = JSON.parse( JSON.stringify(curr_decks[deck_id]) ); // Done to get a copy of the selected deck
+            // Get new id for deck and make sure it is unique
+            id_found = false;
+            while (id_found == false) {
+                if (!(deck_creation_id in curr_decks)) {
+                    temp_deck.id = deck_creation_id;
+                    curr_decks[deck_creation_id] = "";
+                    id_found = true;
+                } else {
+                    deck_creation_id++;
+                }
+            }
+            temp_deck.name = selected_deck_overhead.name + "::" + curr_day_string;
+            temp_deck.desc = selected_deck_overhead.desc + " Date: " + curr_day_string;
+            temp_deck.lrnToday = [0, 0];
+            temp_deck.newToday = [0, 0];
+            temp_deck.revToday = [0, 0];
+            temp_deck.timeToday = [0, 0];
+            curr_decks[deck_creation_id] = temp_deck;
+
+            // Create new cards
+            for (let cpd_counter = 0; cpd_counter < cards_per_day; cpd_counter++) {
+                let curr_card = [...deck_cards[overall_card_counter]];
+                // Get new id for card and make sure it is unique
+                let id_found = false;
+                while (id_found == false) {
+                    if (!card_ids.includes(card_creation_id)) {
+                        curr_card[0] = card_creation_id;
+                        card_ids.push(card_creation_id);
+                        id_found = true;
+                    } else {
+                        card_creation_id++;
+                    }
+                }
+                curr_card[2] = temp_deck.id
+
+                let sql_insert_string = "";
+                for (let column_value of curr_card) {
+                    if (typeof(column_value) === "string")  {
+                        sql_insert_string += "'" + column_value + "'";
+                    } else {
+                        sql_insert_string += column_value;
+                    }
+    
+                    sql_insert_string += ", ";
+                }
+                sql_insert_string = sql_insert_string.slice(0, -2);
+                db.exec("insert into cards values (" + sql_insert_string +")");
+
+
+
+                overall_card_counter++;
+                if (overall_card_counter == deck_cards.length) {
+                    break;
+                }
+            }
+            let check = db.exec("select * from cards where did = '"+ temp_deck.id +"'");
+            console.log("CHECK HERE");
+            console.log(check);
+
+
+        }
 
 
 
@@ -336,14 +431,20 @@ window.create_anki_learning_plan = function(decks, start_date, end_date) {
 
         // Update db with new values
         let fixed_deck_string = JSON.stringify(curr_decks);
-        fixed_string = fixed_string.replaceAll("'", "''");
-        db.exec("update col set decks = '" + fixed_string + "'");
-        // TODO do cards and notes too
+        fixed_deck_string = fixed_deck_string.replaceAll("'", "''");
+        db.exec("update col set decks = '" + fixed_deck_string + "'");
+        // TODO do notes too
 
     }
 
-
-
+    const db_binary_array = db.export();
+    let sql_string = new TextDecoder().decode(db_binary_array);
+    zip.remove("collection.anki21");
+    zip.file("collection.anki21", db_binary_array);
+    zip.generateAsync({type:"uint8array"})
+    .then(function (content) {
+        callback(content);
+    });
 
 }
 

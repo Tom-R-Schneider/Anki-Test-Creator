@@ -54,25 +54,39 @@
       columns[column_id] = document.getElementById(column_id).getAttribute("name");
     }    
     let start_date = new Date(document.getElementById('start_date').value);
-    let end_date;
-    console.log("here");
-    console.log(document.getElementById('date_duration').checked);
+    let learning_days = 0;
+
     if (document.getElementById('date_duration').checked) {
-      console.log(document.getElementById('end_date').value);
-      end_date = new Date(document.getElementById('end_date').value);
+
+      // Calculate days between the two dates
+      let end_date = new Date(document.getElementById('end_date').value);
+      learning_days = end_date.getTime() - start_date.getTime();
+      learning_days = learning_days / (1000 * 3600 * 24);
+
     } else {
-      let duration_days = document.getElementById('input_days').value;
-      console.log(document.getElementById('input_days').value);
-      end_date = new Date(document.getElementById('start_date').value);
-      end_date.setDate(end_date.getDate() + parseInt(duration_days));
+
+      learning_days = document.getElementById('input_days').value;
     }
 
     console.log(decks);
     console.log(columns);
     console.log(start_date);
     console.log(end_date);
-    let learning_plan = window.create_anki_learning_plan(decks, start_date, end_date);
+    window.create_anki_learning_plan(decks, start_date, learning_days, function(learning_plan) {
+
+      // create download link
+      console.log(learning_plan);
+      const element = document.createElement("a");
+      
+      element.href = URL.createObjectURL(new Blob([learning_plan], {type: '' }));
+      element.download = "your_anki_deck_with_learning_plans.apkg";
+      document.body.appendChild(element);
+      element.click();
+    });
+
+
   }
+
   function handle_column_click(check_box) {
 
     window.change_checked_column(check_box.id, check_box.checked);
