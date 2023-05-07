@@ -301,6 +301,19 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
         card_ids.push(id_array[0]);
     }
     console.log(card_ids);
+    let all_notes = db.exec("select * from notes");
+    console.log("CHECKCHECK");
+    console.log(all_notes);
+    all_notes = all_notes[0].values;
+    let note_ids = [];
+    let note_mids = [];
+    let note_json = {};
+    for (let note_array of all_notes) {
+        note_ids.push(note_array[0]);
+        note_json[note_array[0]] = note_array;
+    }
+    console.log(note_ids);
+    console.log(note_json);
 
 
     let deck_creation_id = 1111111111111;
@@ -392,6 +405,23 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                 }
                 curr_card[2] = temp_deck.id
 
+                // Create new note 
+                let tmp = curr_card[1];
+                console.log(tmp);
+                tmp = note_json[tmp + ""];
+                console.log(tmp);
+                let new_note = [...tmp];
+                id_found = false;
+                while (id_found == false) {
+                    if (!note_ids.includes(note_creation_id)) {
+                        new_note[0] = note_creation_id;
+                        note_ids.push(note_creation_id);
+                        id_found = true;
+                    } else {
+                        note_creation_id++;
+                    }
+                }
+
                 let sql_insert_string = "";
                 for (let column_value of curr_card) {
                     if (typeof(column_value) === "string")  {
@@ -405,6 +435,23 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                 sql_insert_string = sql_insert_string.slice(0, -2);
                 db.exec("insert into cards values (" + sql_insert_string +")");
 
+                sql_insert_string = "";
+                for (let column_value of new_note) {
+                    if (typeof(column_value) === "string")  {
+                        sql_insert_string += "'" + column_value.replaceAll("'", "''") + "'";
+                    } else {
+                        sql_insert_string += column_value;
+                    }
+    
+                    sql_insert_string += ", ";
+                }
+                sql_insert_string = sql_insert_string.slice(0, -2);
+                db.exec("insert into notes values (" + sql_insert_string +")");
+                // TODO: check what anki uses to determine a unique card
+
+
+
+
 
 
                 overall_card_counter++;
@@ -415,7 +462,6 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
             let check = db.exec("select * from cards where did = '"+ temp_deck.id +"'");
             console.log("CHECK HERE");
             console.log(check);
-
 
         }
 
@@ -433,8 +479,6 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
         let fixed_deck_string = JSON.stringify(curr_decks);
         fixed_deck_string = fixed_deck_string.replaceAll("'", "''");
         db.exec("update col set decks = '" + fixed_deck_string + "'");
-        // TODO do notes too
-
     }
 
     const db_binary_array = db.export();
