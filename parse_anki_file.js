@@ -364,6 +364,7 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
         console.log(cards_per_day);
         console.log(learning_days);
         let overall_card_counter = 0;
+        let creation_done = false;
         for (let day_counter = 0; day_counter < learning_days; day_counter++) {
             console.log("WORKS");
             let curr_day = new Date();
@@ -391,6 +392,10 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
 
             // Create new cards
             for (let cpd_counter = 0; cpd_counter < cards_per_day; cpd_counter++) {
+                console.log(deck_cards);
+                console.log(overall_card_counter);
+                console.log(deck_cards.length);
+                console.log(deck_cards[overall_card_counter]);
                 let curr_card = [...deck_cards[overall_card_counter]];
                 // Get new id for card and make sure it is unique
                 let id_found = false;
@@ -465,29 +470,22 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
 
                 overall_card_counter++;
                 if (overall_card_counter == deck_cards.length) {
+                    creation_done = true;
                     break;
                 }
             }
-            let check = db.exec("select * from cards where did = '"+ temp_deck.id +"'");
-            console.log("CHECK HERE");
-            console.log(check);
+
+            if (creation_done) {
+                break;
+            }
 
         }
-
-
-
-
-
-
-
-
-
-
 
         // Update db with new values
         let fixed_deck_string = JSON.stringify(curr_decks);
         fixed_deck_string = fixed_deck_string.replaceAll("'", "''");
         db.exec("update col set decks = '" + fixed_deck_string + "'");
+
     }
 
     const db_binary_array = db.export();
