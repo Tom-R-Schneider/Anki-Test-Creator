@@ -7,6 +7,8 @@ const initSqlJs = require("sql.js");
 var deck_info = {};
 var selected_decks = {};
 var selected_columns = {};
+var db;
+var zip;
 
 
 window.process_file_upload = async function(anki_file, callback) {
@@ -17,7 +19,7 @@ window.process_file_upload = async function(anki_file, callback) {
     unzipFile(anki_file, async function(fileData) {
         if (fileData) {
             const SQL = await initSqlJs({ locateFile: file => `https://sql.js.org/dist/${file}` });
-            const db = new SQL.Database(fileData);
+            db = new SQL.Database(fileData);
             const return_rslt = db.exec("SELECT * FROM col");
             console.log(return_rslt);
             let deck_graph = window.get_apkg_deck_graph(db);
@@ -47,7 +49,12 @@ window.get_apkg_deck_graph = function(db) {
     let deck_graph = {}; // JSON to store final anki deck graph
     let used_models = {}; // Used to track models and their cleaned up columns to reduce processing steps
     let decks = db.exec("select decks from col");
+    let check_deck = decks[0].values[0];
+    console.log("this");
+    console.log(decks);
     decks = JSON.parse(decks[0].values[0]);
+    console.log("there");
+    console.log(decks);
     for (let deck_id in decks) {
 
         // Skip default deck as it is not needed for this graph
@@ -83,7 +90,8 @@ window.get_apkg_deck_graph = function(db) {
                 "card_count": card_count,
                 "columns": [],
                 "model_used": "",
-                "selected": false
+                "name": (decks[deck_id].name).replaceAll("::", "-").replaceAll(" ", "_")
+            //    "selected": false
             };
 
             // Get card model used for dict
@@ -106,34 +114,6 @@ window.get_apkg_deck_graph = function(db) {
 
     console.log(deck_graph);
     return deck_graph;
-}
-
-//Used to preconfigure input data for create_solution_excel
-window.preconfigure_calculation_inputs = function(db) {
-
-
-
-    let selected_decks = [1668817277940]; // Used as example
-
-    let columns = {
-        0: {
-            name: "Front",
-            active: true,
-            randomized: true,
-            always_shown: false,
-            never_shown: false,
-            newly_added: false
-        },
-        1: {
-            name: "Back",
-            active: true,
-            randomized: true,
-            always_shown: false,
-            never_shown: false,
-            newly_added: false
-        }
-    };
-    window.create_excels(db, selected_decks, columns, 1, 20, 1);
 }
 
 window.create_excels = function(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
@@ -166,7 +146,6 @@ window.create_excels = function(db, selected_decks, columns, number_of_tests, nu
         }
     }
 
-    //TODO: Create code to get all cards and their data for selected decks
     for (let i = 0; i < number_of_tests; i++) {
         let curr_test_cards = JSON.parse(JSON.stringify(all_cards));
         let sol_excel_columns = [];
@@ -219,7 +198,7 @@ window.create_excels = function(db, selected_decks, columns, number_of_tests, nu
 
 function unzipFile(inputZipFile, callback){
     // Create a new instance of the zip object
-    var zip = new JSZip();
+    zip = new JSZip();
   
     // Use the FileReader API to read the contents of the inputZipFile
     var reader = new FileReader();
@@ -232,6 +211,7 @@ function unzipFile(inputZipFile, callback){
                 zipEntry.async("uint8array").then(function (fileData) {
                     console.log("File: " + relativePath);
                     console.log("Data: " + fileData);
+                    console.log(new TextDecoder().decode(fileData));
                     callback(fileData);
                   });
             }
@@ -252,9 +232,10 @@ window.create_html_from_json = function(input_json) {
         let counter = 0;
         html_string += '<li><div>Your Decks</div>';
         html_string += "<ul>";
+        
         for (let sub_item_name in input_json) {
             counter++;
-            html_string += '<li><div><input type="checkbox" onclick="window.handle_deck_click(this)" id="checkbox' + counter + '">' + sub_item_name + '</div>';
+            html_string += '<li><div><input type="checkbox" onclick="window.handle_deck_click(this)" id="checkbox' + counter + '" name="' + sub_item_name + '">' + sub_item_name + '</div>';
             if (!input_json[sub_item_name].model) {
             [html_string, counter] = recursive_html_create(input_json[sub_item_name], html_string, counter);     
             } else {
@@ -305,8 +286,219 @@ window.get_option_html_for_learning_plan = function() {
     return html_string;
 }
 
-window.create_anki_learning_plan = function(decks, columns, merge_bool, start_date, end_date) {
+window.create_anki_learning_plan = function(decks, start_date, learning_days, callback) {
  
+    // Get all ids that you will need to create new ones of to make sure no ids are duplicated
+    let curr_decks = db.exec("select decks from col");
+    curr_decks = JSON.parse(curr_decks[0].values[0]);
+
+    // Card ids are return as 2d array, so we need to loop through it to get all  
+    curr_cards = db.exec("select id from cards");
+    curr_cards = curr_cards[0].values;
+    let card_ids = [];
+    console.log(curr_cards);
+    for (let id_array of curr_cards) {
+        card_ids.push(id_array[0]);
+    }
+    console.log(card_ids);
+    let all_notes = db.exec("select * from notes");
+    console.log("CHECKCHECK");
+    console.log(all_notes);
+    all_notes = all_notes[0].values;
+    let note_ids = [];
+    let note_mids = [];
+    let note_json = {};
+    for (let note_array of all_notes) {
+        note_ids.push(note_array[0]);
+        note_json[note_array[0]] = note_array;
+    }
+    console.log(note_ids);
+    console.log(note_json);
+
+
+    let deck_creation_id = 1111111111111;
+    let card_creation_id = 1111111111111;
+    let note_creation_id = 1111111111111;
+
+    for (let check_box_id in selected_decks) {
+        console.log(selected_decks);
+        let selected_deck_overhead = {};
+        let deck_id = deck_info[check_box_id].model.dict_id;
+        console.log(deck_info[check_box_id]);
+        selected_deck_overhead = JSON.parse( JSON.stringify(curr_decks[deck_id]) ); // Done to get a copy of the selected deck
+        console.log(selected_deck_overhead);
+        console.log(selected_decks[check_box_id]);
+
+        // Get new id for deck and make sure it is unique
+        let id_found = false;
+        while (id_found == false) {
+            if (!(deck_creation_id in curr_decks)) {
+                selected_deck_overhead.id = deck_creation_id;
+                curr_decks[deck_creation_id] = "";
+                id_found = true;
+            } else {
+                deck_creation_id++;
+            }
+        }
+        selected_deck_overhead.name = "Learning_Plan::" + selected_decks[check_box_id].model.name;
+        selected_deck_overhead.desc = "Learning Plan for " + selected_decks[check_box_id].model.name;
+        selected_deck_overhead.lrnToday = [0, 0];
+        selected_deck_overhead.newToday = [0, 0];
+        selected_deck_overhead.revToday = [0, 0];
+        selected_deck_overhead.timeToday = [0, 0];
+        selected_deck_overhead.mod; // TODO check what mod does
+        curr_decks[deck_creation_id] = selected_deck_overhead
+        console.log(deck_info);
+        let deck_model = selected_decks[check_box_id].model.model_used;
+
+        // Get all deck cards
+        let deck_cards = db.exec("select * from cards where did = '"+ deck_id +"'");
+        console.log("CARDS HERE");
+        console.log(deck_cards);
+        deck_cards = deck_cards[0].values;
+        console.log(deck_cards);
+
+        // Create deck for each date
+        let cards_per_day = Math.ceil(deck_cards.length / learning_days); 
+        console.log("CARDS PER DAY");
+        console.log(cards_per_day);
+        console.log(learning_days);
+        let overall_card_counter = 0;
+        for (let day_counter = 0; day_counter < learning_days; day_counter++) {
+            console.log("WORKS");
+            let curr_day = new Date();
+            curr_day.setDate(start_date.getDate() + day_counter);
+            let curr_day_string = curr_day.getFullYear() + "-" + (curr_day.getMonth() + 1).toString().padStart(2, '0') + "-" + curr_day.getDate().toString().padStart(2, '0');
+            let temp_deck = JSON.parse( JSON.stringify(curr_decks[deck_id]) ); // Done to get a copy of the selected deck
+            // Get new id for deck and make sure it is unique
+            id_found = false;
+            while (id_found == false) {
+                if (!(deck_creation_id in curr_decks)) {
+                    temp_deck.id = deck_creation_id;
+                    curr_decks[deck_creation_id] = "";
+                    id_found = true;
+                } else {
+                    deck_creation_id++;
+                }
+            }
+            temp_deck.name = selected_deck_overhead.name + "::" + curr_day_string;
+            temp_deck.desc = selected_deck_overhead.desc + " Date: " + curr_day_string;
+            temp_deck.lrnToday = [0, 0];
+            temp_deck.newToday = [0, 0];
+            temp_deck.revToday = [0, 0];
+            temp_deck.timeToday = [0, 0];
+            curr_decks[deck_creation_id] = temp_deck;
+
+            // Create new cards
+            for (let cpd_counter = 0; cpd_counter < cards_per_day; cpd_counter++) {
+                let curr_card = [...deck_cards[overall_card_counter]];
+                // Get new id for card and make sure it is unique
+                let id_found = false;
+                while (id_found == false) {
+                    if (!card_ids.includes(card_creation_id)) {
+                        curr_card[0] = card_creation_id;
+                        card_ids.push(card_creation_id);
+                        id_found = true;
+                    } else {
+                        card_creation_id++;
+                    }
+                }
+                curr_card[2] = temp_deck.id
+
+                // Create new note 
+                let tmp = curr_card[1];
+                console.log(tmp);
+                tmp = note_json[tmp + ""];
+                console.log(tmp);
+                let new_note = [...tmp];
+                id_found = false;
+                while (id_found == false) {
+                    if (!note_ids.includes(note_creation_id)) {
+                        curr_card[1] = note_creation_id
+                        new_note[0] = note_creation_id;
+                        const length = 10;
+                        let result = '';
+                        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!§$%&{}():~+-,[]<>/|@=?#*';
+                        const charactersLength = characters.length;
+                        for (let i = 0; i < length; i++) {
+                          result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                        }
+                        new_note[1] = result; // TODO: add a way to get a random guid string
+                        note_ids.push(note_creation_id);
+                        id_found = true;
+                    } else {
+                        note_creation_id++;
+                    }
+                }
+
+                let sql_insert_string = "";
+                for (let column_value of curr_card) {
+                    if (typeof(column_value) === "string")  {
+                        sql_insert_string += "'" + column_value + "'";
+                    } else {
+                        sql_insert_string += column_value;
+                    }
+    
+                    sql_insert_string += ", ";
+                }
+                sql_insert_string = sql_insert_string.slice(0, -2);
+                db.exec("insert into cards values (" + sql_insert_string +")");
+
+                sql_insert_string = "";
+                for (let column_value of new_note) {
+                    if (typeof(column_value) === "string")  {
+                        sql_insert_string += "'" + column_value.replaceAll("'", "''") + "'";
+                    } else {
+                        sql_insert_string += column_value;
+                    }
+    
+                    sql_insert_string += ", ";
+                }
+                sql_insert_string = sql_insert_string.slice(0, -2);
+                db.exec("insert into notes values (" + sql_insert_string +")");
+                // TODO: check what anki uses to determine a unique card
+
+
+
+
+
+
+                overall_card_counter++;
+                if (overall_card_counter == deck_cards.length) {
+                    break;
+                }
+            }
+            let check = db.exec("select * from cards where did = '"+ temp_deck.id +"'");
+            console.log("CHECK HERE");
+            console.log(check);
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+        // Update db with new values
+        let fixed_deck_string = JSON.stringify(curr_decks);
+        fixed_deck_string = fixed_deck_string.replaceAll("'", "''");
+        db.exec("update col set decks = '" + fixed_deck_string + "'");
+    }
+
+    const db_binary_array = db.export();
+    let sql_string = new TextDecoder().decode(db_binary_array);
+    zip.remove("collection.anki21");
+    zip.file("collection.anki21", db_binary_array);
+    zip.generateAsync({type:"uint8array"})
+    .then(function (content) {
+        callback(content);
+    });
+
 }
 
 window.get_checked_columns = function() {
@@ -318,14 +510,16 @@ window.get_checked_decks = function() {
 }
 
 window.change_checked_deck = function(check_box_id, checked) {
+
     if (checked) {
-        selected_decks[check_box_id] = "";
+        selected_decks[check_box_id] = deck_info[check_box_id];
     } else {
         delete selected_decks[check_box_id];
     }
 }
 
 window.change_checked_column = function(check_box_id, checked) {
+
     if (checked) {
         selected_columns[check_box_id] = "";
     } else {
