@@ -416,7 +416,14 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                     if (!note_ids.includes(note_creation_id)) {
                         curr_card[1] = note_creation_id
                         new_note[0] = note_creation_id;
-                        new_note[1] = new_note[1].substring(1) + "a"; // TODO: add a way to get a random guid string
+                        const length = 10;
+                        let result = '';
+                        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!§$%&{}():~+-,[]<>/|@=?#*';
+                        const charactersLength = characters.length;
+                        for (let i = 0; i < length; i++) {
+                          result += characters.charAt(Math.floor(Math.random() * charactersLength));
+                        }
+                        new_note[1] = result; // TODO: add a way to get a random guid string
                         note_ids.push(note_creation_id);
                         id_found = true;
                     } else {
