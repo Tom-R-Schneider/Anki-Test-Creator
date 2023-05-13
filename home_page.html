@@ -91,16 +91,47 @@
     let decks = window.get_checked_decks();
     window.start_learning_loop(decks, function(random_cards) {
       console.log(random_cards);
+      let n = 0;
+      function loopWithDelay(random_cards) {
+          setTimeout(function() {
+            console.log("hi");
+            let html_table = '<table style="border-collapse: collapse; border: 1px solid black;">';
+            
+            for (let column in random_cards[n]) {
+              html_table += '<tr>';
+              html_table += '<td style="border: 1px solid black;">' + column + '</td>';
+              html_table += '<td style="border: 1px solid black;">' + random_cards[n][column] + '</td>';
+              html_table += '</tr>';
+            }
+            
+            html_table += "</table>"
+            document.getElementById('options').innerHTML = html_table;
+            n++;
+            if (n < random_cards.length) {
+              loopWithDelay(random_cards);
+            } else {
+              n = 0;
+              loopWithDelay(random_cards);
+            }
+          }, 3000);
+  
+        
+      }
       let html_table = '<table style="border-collapse: collapse; border: 1px solid black;">';
-      for (let card of random_cards) {
+            
+      for (let column in random_cards[n]) {
         html_table += '<tr>';
-        for (let column in card) {
-          html_table += '<td style="border: 1px solid black;">' + card[column] + '</td>';
-        }
+        html_table += '<td style="border: 1px solid black;">' + column + '</td>';
+        html_table += '<td style="border: 1px solid black;">' + random_cards[n][column] + '</td>';
         html_table += '</tr>';
       }
+      
       html_table += "</table>"
       document.getElementById('options').innerHTML = html_table;
+      n++;
+      loopWithDelay(random_cards)
+      
+
 
 
     });
