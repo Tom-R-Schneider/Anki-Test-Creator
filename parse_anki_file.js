@@ -9,6 +9,7 @@ var selected_decks = {};
 var selected_columns = {};
 var db;
 var zip;
+var used_models = {};
 
 
 window.process_file_upload = async function(anki_file, callback) {
@@ -47,7 +48,6 @@ window.get_apkg_deck_graph = function(db) {
     console.log(models[0].values[0]);
     models = JSON.parse(models[0].values[0]);
     let deck_graph = {}; // JSON to store final anki deck graph
-    let used_models = {}; // Used to track models and their cleaned up columns to reduce processing steps
     let decks = db.exec("select decks from col");
     let check_deck = decks[0].values[0];
     console.log("this");
@@ -115,7 +115,60 @@ window.get_apkg_deck_graph = function(db) {
     console.log(deck_graph);
     return deck_graph;
 }
+get_random_cards_of_deck = function(db, selected_decks, number_of_cards) {
 
+    let anki_cards = [];
+    for (let selected_deck of selected_decks) {
+        let deck_cards = db.exec("select nid from cards where did = '"+ selected_deck +"'");
+        anki_cards.push(...deck_cards[0].values);    
+    }
+    let random_cards = [];
+    for (let i = 0; i < number_of_cards; i++) {
+        let random_index = Math.floor(Math.random() * anki_cards.length);
+        
+        let note = db.exec("select mid, flds from notes where id = '" + anki_cards[random_index][0] + "'");
+        console.log(note);
+        console.log(note[0]);
+        console.log(note[0].values);
+        console.log(note[0].values[0]);
+        console.log(note[0].values[1]);
+        console.log(used_models);
+
+        let column_header = used_models[note[0].values[0][0]];
+        let column_values = note[0].values[0][1];
+        console.log(column_header);        
+        console.log(column_values);
+
+        column_values = column_values.split("");
+        note = {};
+        for (let j = 0; j < column_values.length; j++) {
+            note[column_header[j]] = column_values[j];
+        }
+        console.log(note);
+        random_cards.push(note);
+
+
+        anki_cards.splice(random_index, 1);
+    }
+
+
+    console.log("Random card deck");
+    console.log(random_cards);
+    return random_cards;
+
+}
+window.start_learning_loop = function(decks, callback) {
+    let deck_ids = [];
+    for (let check_box_id in decks) {
+        console.log(selected_decks);
+        deck_ids.push(deck_info[check_box_id].model.dict_id);
+    }
+    let random_cards = get_random_cards_of_deck(db, deck_ids, 5);
+    callback(random_cards);
+
+
+
+}
 window.create_excels = function(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
 
     // Get all cards from selected decks
