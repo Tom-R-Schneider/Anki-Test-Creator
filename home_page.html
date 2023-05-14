@@ -15,9 +15,6 @@
       console.log(graphs);
       document.getElementById('deck_list').innerHTML = graphs.html_graph
       document.getElementById('column_names').innerHTML = "<div>Select a deck to show columns</div>"
-      let html_options = window.get_option_html_for_learning_plan();
-    console.log(html_options);
-    document.getElementById('options').innerHTML = html_options;
     document.getElementById('start_date').valueAsDate = new Date();
     });
   }
@@ -88,8 +85,16 @@
   }
 
   function create_learning_loop() {
+    let total_seconds = parseInt(document.getElementById('seconds_per_card_input').value);
+    let guessing_seconds = parseInt(document.getElementById('seconds_before_reveal_input').value);
+    let card_count = 0;
+    if (document.getElementById('all_cards').checked) {
+      card_count = "all";
+    } else {
+      card_count = parseInt(document.getElementById('selection_of_cards').value);
+    }
     let decks = window.get_checked_decks();
-    window.start_learning_loop(decks, function(random_cards) {
+    window.start_learning_loop(decks, card_count, function(random_cards) {
       console.log(random_cards);
       let n = 0;
       function loopWithDelay(random_cards) {
@@ -113,7 +118,7 @@
               n = 0;
               loopWithDelay(random_cards);
             }
-          }, 3000);
+          }, total_seconds * 1000);
   
         
       }
@@ -176,7 +181,6 @@
             content.innerHTML= this.responseText;
             document.getElementById('deck_list').innerHTML = "<div>Upload your apkg file to show deck list</div>";
             document.getElementById('column_names').innerHTML = "<div>Upload your apkg file to show column names</div>";
-            document.getElementById('options').innerHTML = "<div>Upload your apkg file to show options</div>";
         };
           break;
         case 'button3':
