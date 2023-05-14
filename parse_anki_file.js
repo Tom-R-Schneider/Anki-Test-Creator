@@ -167,10 +167,47 @@ window.start_learning_loop = function(decks, card_count, callback) {
         deck_ids.push(deck_info[check_box_id].model.dict_id);
     }
 
-    let random_cards = get_random_cards_of_deck(db, deck_ids, card_count);
+    let random_cards = {
+        "questions": [],
+        "answers": get_random_cards_of_deck(db, deck_ids, card_count)
+    };
+    random_cards.questions = get_question_flashcards(random_cards.answers, column_options, shown_rnd_counter);
     callback(random_cards);
 
 
+
+}
+get_question_flashcards = function(card_array, column_options, shown_rnd_counter) {
+    let question_flashcards = [];
+    for (let card of card_array) {
+        let q_card = {}
+        let rnd_column = [];
+        for (let column in card) {
+            switch(column_options[column]) {
+                case "always_shown":
+                    q_card[column] = card[column];
+                    break;
+
+                case "never_shown":
+                    q_card[column] = "???";
+                    break;
+                    
+                case "randomized":
+                    q_card[column] = "???";
+                    rnd_column.push(column);
+                    break;
+            }
+
+        }
+        for (let i = 0; i < shown_rnd_counter; i++) {
+            let random_card_number = Math.floor(Math.random() * rnd_column.length);
+            q_card[rnd_column[random_card_number]] = card[rnd_column[random_card_number]];
+            rnd_column.splice(random_card_number, 1);
+        }
+        question_flashcards.push(q_card);
+        
+    }
+    return question_flashcards;
 
 }
 window.create_excels = function(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
@@ -292,7 +329,7 @@ window.create_html_from_json = function(input_json) {
         
         for (let sub_item_name in input_json) {
             counter++;
-            html_string += '<li><div><input type="checkbox" onclick="window.handle_deck_click(this)" id="checkbox' + counter + '" name="' + sub_item_name + '">' + sub_item_name + '</div>';
+            html_string += '<li><div><input type="checkbox" onclick="handle_deck_click(this)" id="checkbox' + counter + '" name="' + sub_item_name + '">' + sub_item_name + '</div>';
             if (!input_json[sub_item_name].model) {
             [html_string, counter] = recursive_html_create(input_json[sub_item_name], html_string, counter);     
             } else {
