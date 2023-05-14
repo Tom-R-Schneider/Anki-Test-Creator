@@ -123,6 +123,9 @@ get_random_cards_of_deck = function(db, selected_decks, number_of_cards) {
         anki_cards.push(...deck_cards[0].values);    
     }
     let random_cards = [];
+    if (number_of_cards == "all") {
+         number_of_cards = anki_cards.length;
+    }
     for (let i = 0; i < number_of_cards; i++) {
         let random_index = Math.floor(Math.random() * anki_cards.length);
         
@@ -157,13 +160,14 @@ get_random_cards_of_deck = function(db, selected_decks, number_of_cards) {
     return random_cards;
 
 }
-window.start_learning_loop = function(decks, callback) {
+window.start_learning_loop = function(decks, card_count, callback) {
     let deck_ids = [];
     for (let check_box_id in decks) {
         console.log(selected_decks);
         deck_ids.push(deck_info[check_box_id].model.dict_id);
     }
-    let random_cards = get_random_cards_of_deck(db, deck_ids, 5);
+
+    let random_cards = get_random_cards_of_deck(db, deck_ids, card_count);
     callback(random_cards);
 
 
@@ -325,18 +329,6 @@ window.get_deck_info_for_id = function(column_id) {
     let columns = selected_deck.model.columns;
     return columns;
 
-}
-
-window.get_option_html_for_learning_plan = function() {
-    let html_string = "";
-    html_string += "<div><h1>Options</h1></div>";
-    html_string += '<label for="start_date">Start Date:</label><input type="date" id="start_date" name="start_date">';
-    html_string += '<div><input type="radio" id="days_duration" name="learning_duration" value="number of days" checked><label for="days_duration">Number of Days: <input type="number" id="input_days" name="days" min="1"></label></div>';
-    html_string += '<div><input type="radio" id="date_duration" name="learning_duration" value="End Date"><label for="date_duration">End Date: </label><input type="date" id="end_date" name="end_date"></div>';
-    html_string += '<div><input type="checkbox" id="merge_bool" name="merge"><label for="date_duration">Merge decks</label></div>';
-
-
-    return html_string;
 }
 
 window.create_anki_learning_plan = function(decks, start_date, learning_days, callback) {
