@@ -1,8 +1,5 @@
-const JSZip = require("jszip");
-const initSqlJs = require("sql.js");
-
-// Required to let webpack 4 know it needs to copy the wasm file to our assets
-//const sqlWasm = require("https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js");
+const JSZip = require("jszip"); // Used for zipping/unzipping in-memory on client-side
+const initSqlJs = require("sql.js"); // Used to read and update anki files in-memory on client-side
 
 var deck_info = {};
 var selected_decks = {};
@@ -11,28 +8,34 @@ var db;
 var zip;
 var used_models = {};
 
-
+// Function to process user file for further processing
 window.process_file_upload = async function(anki_file, callback) {
-    // anki_file = "anki_example_file/All Decks.apkg";
     console.log(anki_file);
     deck_info = {};
 
+    // Apkg is a zip file that has 2 db files and a folder for media (.anki21 is the one we need)
     unzipFile(anki_file, async function(fileData) {
         if (fileData) {
             const SQL = await initSqlJs({ locateFile: file => `https://sql.js.org/dist/${file}` });
+
+            // Create db with user anki21 file as arraybuffer
             db = new SQL.Database(fileData);
             const return_rslt = db.exec("SELECT * FROM col");
             console.log(return_rslt);
+
+            // Create JSON with additional info from user decks
             let deck_graph = window.get_apkg_deck_graph(db);
             console.log("deck_graph");
             console.log(deck_graph);
+
+            // Create html list from JSON to expose to user
             let html_graph = window.create_html_from_json(deck_graph);
             console.log("html_graph");
             console.log(html_graph);
             let graphs = {
                 "deck_graph": deck_graph,
                 "html_graph": html_graph,
-                "deck_info": deck_info
+                "deck_info": deck_info // Deck info is kept as global variable and is filled in function get_apkg_deck_graph 
             };
             callback(graphs);
         }
@@ -46,10 +49,13 @@ window.get_apkg_deck_graph = function(db) {
     let models = db.exec("select models from col");
     console.log("models");
     console.log(models[0].values[0]);
+
+    // Get all models from user decks
     models = JSON.parse(models[0].values[0]);
     let deck_graph = {}; // JSON to store final anki deck graph
+
+    // Get all decks from user
     let decks = db.exec("select decks from col");
-    let check_deck = decks[0].values[0];
     console.log("this");
     console.log(decks);
     decks = JSON.parse(decks[0].values[0]);
@@ -91,7 +97,6 @@ window.get_apkg_deck_graph = function(db) {
                 "columns": [],
                 "model_used": "",
                 "name": (decks[deck_id].name).replaceAll("::", "-").replaceAll(" ", "_")
-            //    "selected": false
             };
 
             // Get card model used for dict
@@ -99,9 +104,11 @@ window.get_apkg_deck_graph = function(db) {
             console.log(card_note);
             let card_note_mid = card_note[0].values[0];
             let card_model = models[card_note_mid]
-            curr_branch.model.model_used = card_model.id;    
+            curr_branch.model.model_used = card_model.id; 
+
             // Push column names into list to use later
             if (!used_models[card_model.id]) {
+
                 let columns = [];
                 for (let column of card_model.flds) {
                     columns.push(column.name);
@@ -115,20 +122,29 @@ window.get_apkg_deck_graph = function(db) {
     console.log(deck_graph);
     return deck_graph;
 }
+
+// Function to get random cards from a collection of cards
 get_random_cards_of_deck = function(db, selected_decks, number_of_cards) {
 
     let anki_cards = [];
+
+    // Get all cards that the user wants to select from
     for (let selected_deck of selected_decks) {
         let deck_cards = db.exec("select nid from cards where did = '"+ selected_deck +"'");
         anki_cards.push(...deck_cards[0].values);    
     }
+
     let random_cards = [];
+
     if (number_of_cards == "all") {
          number_of_cards = anki_cards.length;
     }
+
+    // Get number of cards to user wants
     for (let i = 0; i < number_of_cards; i++) {
+
+
         let random_index = Math.floor(Math.random() * anki_cards.length);
-        
         let note = db.exec("select mid, flds from notes where id = '" + anki_cards[random_index][0] + "'");
         console.log(note);
         console.log(note[0]);
@@ -142,24 +158,28 @@ get_random_cards_of_deck = function(db, selected_decks, number_of_cards) {
         console.log(column_header);        
         console.log(column_values);
 
+        // Anki card values are a string seperated by a special character
         column_values = column_values.split("");
         note = {};
+
+        // Assign card value to corresponding column
         for (let j = 0; j < column_values.length; j++) {
             note[column_header[j]] = column_values[j];
         }
+
         console.log(note);
         random_cards.push(note);
 
-
+        // Remove cards from list, os no duplicates can happen
         anki_cards.splice(random_index, 1);
     }
-
 
     console.log("Random card deck");
     console.log(random_cards);
     return random_cards;
-
 }
+
+// Function to create random cards to expose to user in an infinite loop
 window.start_learning_loop = function(decks, card_count, column_options, shown_rnd_counter, callback) {
     let deck_ids = [];
     for (let check_box_id in decks) {
@@ -171,12 +191,16 @@ window.start_learning_loop = function(decks, card_count, column_options, shown_r
         "questions": [],
         "answers": get_random_cards_of_deck(db, deck_ids, card_count)
     };
+
+    // Create question cards from answer cards
     random_cards.questions = get_question_flashcards(random_cards.answers, column_options, shown_rnd_counter);
     callback(random_cards);
 
 
 
 }
+
+// Function to create question cards from cards and user options
 get_question_flashcards = function(card_array, column_options, shown_rnd_counter) {
     let question_flashcards = [];
     console.log(column_options);
@@ -186,6 +210,8 @@ get_question_flashcards = function(card_array, column_options, shown_rnd_counter
         let rnd_column = [];
         console.log("HEREHEREHERE");
         console.log(card);
+
+        // For each column of card check how to handle value depending on user configs
         for (let column in card) {
             
             switch(column_options[column]) {
@@ -204,18 +230,24 @@ get_question_flashcards = function(card_array, column_options, shown_rnd_counter
             }
 
         }
+
+        // Display columns labeled as random depending on how many user wants to see
         for (let i = 0; i < shown_rnd_counter; i++) {
             let random_card_number = Math.floor(Math.random() * rnd_column.length);
             q_card[rnd_column[random_card_number]] = card[rnd_column[random_card_number]];
             rnd_column.splice(random_card_number, 1);
         }
+
         question_flashcards.push(q_card);
         
     }
+
     console.log(question_flashcards);
     return question_flashcards;
 
 }
+
+// Will be deleted or changed soon, so no comments yet
 window.create_excels = function(db, selected_decks, columns, number_of_tests, number_of_rows, number_of_random_cols) {
 
     // Get all cards from selected decks
@@ -296,6 +328,7 @@ window.create_excels = function(db, selected_decks, columns, number_of_tests, nu
     }
 }
 
+
 function unzipFile(inputZipFile, callback){
     // Create a new instance of the zip object
     zip = new JSZip();
@@ -315,8 +348,6 @@ function unzipFile(inputZipFile, callback){
                     callback(fileData);
                   });
             }
-          // Extract each file from the zip object and log it to the console
-
         });
       });
     };
@@ -325,6 +356,7 @@ function unzipFile(inputZipFile, callback){
     reader.readAsArrayBuffer(inputZipFile);
 }
 
+// Function to create html list from JSON deck
 window.create_html_from_json = function(input_json) {
 
         // Create html string
@@ -346,16 +378,24 @@ window.create_html_from_json = function(input_json) {
         return html_string;
 }
 
+// Used in create_html_from_json for recursive graph traversal
 function recursive_html_create(item, html_string, counter) {
+
     if (!item.model) {
+
         html_string += "<ul>";
+
         for (let sub_item_name in item) {
+
             counter++;
             html_string += '<li><div><input type="checkbox" onclick="handle_deck_click(this)" id="checkbox' + counter + '">' + sub_item_name + '</div>';
             [html_string, counter] = recursive_html_create(item[sub_item_name], html_string, counter);
         }
+
         html_string += "</ul>";
+
     } else {
+
         console.log("Deck Info");
         console.log(deck_info);
         console.log(item);
@@ -365,6 +405,7 @@ function recursive_html_create(item, html_string, counter) {
 
 }
 
+// Function to get information for checkbox id of deck
 window.get_deck_info_for_id = function(column_id) {
     let selected_deck = deck_info[column_id];
     console.log(deck_info);
@@ -374,6 +415,7 @@ window.get_deck_info_for_id = function(column_id) {
 
 }
 
+// Function used to create a learning plan using anki decks
 window.create_anki_learning_plan = function(decks, start_date, learning_days, callback) {
  
     // Get all ids that you will need to create new ones of to make sure no ids are duplicated
@@ -394,11 +436,12 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
     console.log(all_notes);
     all_notes = all_notes[0].values;
     let note_ids = [];
-    let note_mids = [];
     let note_json = {};
+
     for (let note_array of all_notes) {
         note_ids.push(note_array[0]);
         note_json[note_array[0]] = note_array;
+
     }
     console.log(note_ids);
     console.log(note_json);
@@ -428,6 +471,8 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                 deck_creation_id++;
             }
         }
+
+        // Create new decks for user cards to be learned
         selected_deck_overhead.name = "Learning_Plan::" + selected_decks[check_box_id].model.name;
         selected_deck_overhead.desc = "Learning Plan for " + selected_decks[check_box_id].model.name;
         selected_deck_overhead.lrnToday = [0, 0];
@@ -435,11 +480,12 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
         selected_deck_overhead.revToday = [0, 0];
         selected_deck_overhead.timeToday = [0, 0];
         selected_deck_overhead.mod; // TODO check what mod does
+
         curr_decks[deck_creation_id] = selected_deck_overhead
         console.log(deck_info);
-        let deck_model = selected_decks[check_box_id].model.model_used;
+        let deck_model = selected_decks[check_box_id].model.model_used; // Maybe can be deleted
 
-        // Get all deck cards
+        // Get all cards from selected deck
         let deck_cards = db.exec("select * from cards where did = '"+ deck_id +"'");
         console.log("CARDS HERE");
         console.log(deck_cards);
@@ -470,6 +516,8 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                     deck_creation_id++;
                 }
             }
+
+            // Create deck with reset metadata just in case
             temp_deck.name = selected_deck_overhead.name + "::" + curr_day_string;
             temp_deck.desc = selected_deck_overhead.desc + " Date: " + curr_day_string;
             temp_deck.lrnToday = [0, 0];
@@ -478,7 +526,7 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
             temp_deck.timeToday = [0, 0];
             curr_decks[deck_creation_id] = temp_deck;
 
-            // Create new cards
+            // Create new cards and notes as anki only allows one deck per card and deletes duplicates
             for (let cpd_counter = 0; cpd_counter < cards_per_day; cpd_counter++) {
                 console.log(deck_cards);
                 console.log(overall_card_counter);
@@ -511,6 +559,8 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                         new_note[0] = note_creation_id;
                         const length = 10;
                         let result = '';
+
+                        // Anki checks duplicate cards by checking note guid (not content as they claim in their docs)
                         const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!§$%&{}():~+-,[]<>/|@=?#*';
                         const charactersLength = characters.length;
                         for (let i = 0; i < length; i++) {
@@ -524,6 +574,7 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                     }
                 }
 
+                // Convert card data into sql statement to push into db
                 let sql_insert_string = "";
                 for (let column_value of curr_card) {
                     if (typeof(column_value) === "string")  {
@@ -537,6 +588,7 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                 sql_insert_string = sql_insert_string.slice(0, -2);
                 db.exec("insert into cards values (" + sql_insert_string +")");
 
+                // Convert note data into sql statement to push into db
                 sql_insert_string = "";
                 for (let column_value of new_note) {
                     if (typeof(column_value) === "string")  {
@@ -549,13 +601,8 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                 }
                 sql_insert_string = sql_insert_string.slice(0, -2);
                 db.exec("insert into notes values (" + sql_insert_string +")");
-                // TODO: check what anki uses to determine a unique card
 
-
-
-
-
-
+                // Needed in case last deck has less than calculated number of cards per deck
                 overall_card_counter++;
                 if (overall_card_counter == deck_cards.length) {
                     creation_done = true;
@@ -563,6 +610,7 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
                 }
             }
 
+            // Needed in case last deck is not needed because there are less cards than days for learning plan
             if (creation_done) {
                 break;
             }
@@ -576,6 +624,7 @@ window.create_anki_learning_plan = function(decks, start_date, learning_days, ca
 
     }
 
+    // Export db to update user given zip file with new anki21 file
     const db_binary_array = db.export();
     let sql_string = new TextDecoder().decode(db_binary_array);
     zip.remove("collection.anki21");
