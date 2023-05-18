@@ -31,13 +31,17 @@
 
         </div>
         <div class="scroll-container" id="options">
-
+          <div><h1>Options</h1></div>
+          <label for="start_date">Start Date:</label><input type="date" id="start_date" name="start_date">
+          <div><input type="radio" id="days_duration" name="learning_duration" value="number of days" checked><label for="days_duration">Number of Days: <input type="number" id="input_days" name="days" min="1"></label></div>
+          <div><input type="radio" id="date_duration" name="learning_duration" value="End Date"><label for="date_duration">End Date: </label><input type="date" id="end_date" name="end_date"></div>
+          <div><input type="checkbox" id="merge_bool" name="merge"><label for="date_duration">Merge decks</label></div>
         </div>
       </body>
 </div>
 
 <button id="create_learning_plan" class="btn btn-success" name="Create Learning Plan" type="submit" onclick="create_learning_plan()"> Upload File </button>
-<div><a href="path_to_file" id="file_download" download="proposed_file_name">Download Anki File</a></div>
+<!-- <div><a href="path_to_file" id="file_download" download="proposed_file_name">Download Anki File</a></div> -->
 
 
 
