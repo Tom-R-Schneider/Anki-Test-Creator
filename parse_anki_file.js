@@ -160,7 +160,7 @@ get_random_cards_of_deck = function(db, selected_decks, number_of_cards) {
     return random_cards;
 
 }
-window.start_learning_loop = function(decks, card_count, callback) {
+window.start_learning_loop = function(decks, card_count, column_options, shown_rnd_counter, callback) {
     let deck_ids = [];
     for (let check_box_id in decks) {
         console.log(selected_decks);
@@ -179,10 +179,15 @@ window.start_learning_loop = function(decks, card_count, callback) {
 }
 get_question_flashcards = function(card_array, column_options, shown_rnd_counter) {
     let question_flashcards = [];
+    console.log(column_options);
+    console.log(shown_rnd_counter);
     for (let card of card_array) {
         let q_card = {}
         let rnd_column = [];
+        console.log("HEREHEREHERE");
+        console.log(card);
         for (let column in card) {
+            
             switch(column_options[column]) {
                 case "always_shown":
                     q_card[column] = card[column];
@@ -192,7 +197,7 @@ get_question_flashcards = function(card_array, column_options, shown_rnd_counter
                     q_card[column] = "???";
                     break;
                     
-                case "randomized":
+                case "random":
                     q_card[column] = "???";
                     rnd_column.push(column);
                     break;
@@ -207,6 +212,7 @@ get_question_flashcards = function(card_array, column_options, shown_rnd_counter
         question_flashcards.push(q_card);
         
     }
+    console.log(question_flashcards);
     return question_flashcards;
 
 }
