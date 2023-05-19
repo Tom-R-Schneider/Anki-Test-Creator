@@ -7,26 +7,30 @@
 <link rel="stylesheet" href="webpage_design.css">
 <script src="out.js"></script>
 <script>
+  // Function to parse anki apkg file  
   async function parse_input() {
     let file = document.getElementById('file_input').files[0];
-    console.log(file);
+    // Create graphs to show to the user 
     window.process_file_upload(file, function(graphs) {
       console.log('graphs');
       console.log(graphs);
       document.getElementById('deck_list').innerHTML = graphs.html_graph
       document.getElementById('column_names').innerHTML = "<div>Select a deck to show columns</div>"
-    document.getElementById('start_date').valueAsDate = new Date();
+      document.getElementById('start_date').valueAsDate = new Date();
     });
   }
+  // Function to create html list for columns that are in clicked deck 
   function handle_deck_click(check_box) {
     console.log(check_box);
+
+    // Add columns when user checks deck
     if (check_box.checked) {
       console.log("yes");
       console.log(check_box.id);
+      // Get deck info for selected deck
       let columns = window.get_deck_info_for_id(check_box.id)
-        // Create html string
+        // Create html list of deck columns
         let html_string = "";
-        let counter = 0;
         html_string += '<li><div>Your selected Deck Columns</div>';
         html_string += "<ul>";
         for (let column of columns) {
@@ -39,21 +43,22 @@
 
 
     } else {
+      // TODO: remove columns if user unchecks deck
       console.log("no");
     }
+    // Add deck to the list of checked decks
     window.change_checked_deck(check_box.id, check_box.checked);
   }
 
+  // Function to create learning plan from user configs
   function create_learning_plan() {
 
+    // Get options configs from frontend
     let decks = window.get_checked_decks();
-    let columns = window.get_checked_columns(); 
-    for(let column_id in columns) {
-      columns[column_id] = document.getElementById(column_id).getAttribute("name");
-    }    
     let start_date = new Date(document.getElementById('start_date').value);
     let learning_days = 0;
 
+    // User selected end date
     if (document.getElementById('date_duration').checked) {
 
       // Calculate days between the two dates
@@ -61,21 +66,23 @@
       learning_days = end_date.getTime() - start_date.getTime();
       learning_days = learning_days / (1000 * 3600 * 24);
 
+    // User selected days  
     } else {
 
       learning_days = document.getElementById('input_days').value;
     }
+    // TODO: add option to configure cards per day
 
     console.log(decks);
-    console.log(columns);
     console.log(start_date);
     console.log(end_date);
+
+    // Create the zip file of user anki deck with new decks added
     window.create_anki_learning_plan(decks, start_date, learning_days, function(learning_plan) {
 
-      // create download link
+      // Trigger download of learning plan
       console.log(learning_plan);
       const element = document.createElement("a");
-      
       element.href = URL.createObjectURL(new Blob([learning_plan], {type: '' }));
       element.download = "your_anki_deck_with_learning_plans.apkg";
       document.body.appendChild(element);
@@ -85,85 +92,89 @@
 
   }
 
+  // Function to display a loop of cards to the user
   function create_learning_loop() {
+
+    // Get options from user from the frontend
     let answer_seconds = parseInt(document.getElementById('seconds_after_reveal_input').value);
     let guessing_seconds = parseInt(document.getElementById('seconds_before_reveal_input').value);
     let shown_rnd_counter = parseInt(document.getElementById('random_column_count_input').value);
+
+    // User can decide if they want a certain amount of cards or all cards from selection
     let card_count = 0;
     if (document.getElementById('all_cards').checked) {
       card_count = "all";
     } else {
       card_count = parseInt(document.getElementById('selection_of_cards').value);
     }
+
     let decks = window.get_checked_decks();
+
+    // Function only gets ids from html element, but not important information
     let column_ids = window.get_checked_columns();
     let columns = {};
     for(let column_id in column_ids) {
       columns[document.getElementById(column_id).getAttribute("name")] = document.getElementById('column_option' + column_id.replace("check", "")).value;
     }    
+    // Create list of cards from user selected decks and configure them the way the user wants
     window.start_learning_loop(decks, card_count, columns, shown_rnd_counter, function(random_cards) {
       console.log(random_cards);
       let n = 0;
+      // First, show the user the question card
       function loopWithDelay(random_cards) {
+        setTimeout(function() {
+
+          // Expose question card to user
+          let html_table = '<table style="border-collapse: collapse; border: 1px solid black;">';
+
+          for (let column in random_cards.questions[n]) {
+            html_table += '<tr>';
+            html_table += '<td style="border: 1px solid black;">' + column + '</td>';
+            html_table += '<td style="border: 1px solid black;">' + random_cards.questions[n][column] + '</td>';
+            html_table += '</tr>';
+          }
+          
+          html_table += "</table>"
+          document.getElementById('options').innerHTML = html_table;
+          
           setTimeout(function() {
+
+            // Expose answer card to user
             let html_table = '<table style="border-collapse: collapse; border: 1px solid black;">';
-            
-            for (let column in random_cards.questions[n]) {
+
+            for (let column in random_cards.answers[n]) {
               html_table += '<tr>';
               html_table += '<td style="border: 1px solid black;">' + column + '</td>';
-              html_table += '<td style="border: 1px solid black;">' + random_cards.questions[n][column] + '</td>';
+              html_table += '<td style="border: 1px solid black;">' + random_cards.answers[n][column] + '</td>';
               html_table += '</tr>';
             }
             
             html_table += "</table>"
             document.getElementById('options').innerHTML = html_table;
-            
-              setTimeout(function() {
-              let html_table = '<table style="border-collapse: collapse; border: 1px solid black;">';
-              
-              for (let column in random_cards.answers[n]) {
-                html_table += '<tr>';
-                html_table += '<td style="border: 1px solid black;">' + column + '</td>';
-                html_table += '<td style="border: 1px solid black;">' + random_cards.answers[n][column] + '</td>';
-                html_table += '</tr>';
-              }
-              
-              html_table += "</table>"
-              document.getElementById('options').innerHTML = html_table;
-              n++;
-              console.log(n);
-              if (n < random_cards.answers.length) {
-                loopWithDelay(random_cards, n);
-              } else {
-                n = 0;
-                loopWithDelay(random_cards, n);
-              }
-            }, guessing_seconds * 1000);
-          }, answer_seconds * 1000);
+            n++;
+            console.log(n);
+            // Make sure to reset counter to enable infinite loop
+            if (n < random_cards.answers.length) {
+              loopWithDelay(random_cards, n);
+            } else {
+              n = 0;
+              loopWithDelay(random_cards, n);
+            }
+          }, guessing_seconds * 1000);
+        }, answer_seconds * 1000);
   
         
       }
-      // let html_table = '<table style="border-collapse: collapse; border: 1px solid black;">';
-            
-      // for (let column in random_cards[n]) {
-      //   html_table += '<tr>';
-      //   html_table += '<td style="border: 1px solid black;">' + column + '</td>';
-      //   html_table += '<td style="border: 1px solid black;">' + random_cards[n][column] + '</td>';
-      //   html_table += '</tr>';
-      // }
-      
-      // html_table += "</table>"
-      // document.getElementById('options').innerHTML = html_table;
-      // n++;
+
       loopWithDelay(random_cards)
-      
-
-
 
     });
   }
+
+  // Function to handle clicks on column checkboxes
   function handle_column_click(check_box) {
 
+    // Add or remove column from internal list depending on 
     window.change_checked_column(check_box.id, check_box.checked);
   }
 </script>
@@ -180,12 +191,14 @@
   </div>
 
   <script>
-    // JavaScript function to change content based on button clicked
+    // Function to get content from another file based on button clicked
     function showContent(buttonId) {
       var content = document.getElementById('content');
       var xhr= new XMLHttpRequest();
 
       switch (buttonId) {
+
+        // Html file for Test
         case 'button1':
         xhr.open('GET', 'vocab_test.html', true);
         xhr.onreadystatechange= function() {
@@ -194,6 +207,8 @@
             content.innerHTML= this.responseText;
         };
           break;
+
+        // Html file for Learning Plan
         case 'button2':
         xhr.open('GET', 'learning_plan.html', true);
         xhr.onreadystatechange= function() {
@@ -204,6 +219,8 @@
             document.getElementById('column_names').innerHTML = "<div>Upload your apkg file to show column names</div>";
         };
           break;
+
+        // Html file for Learning Loop
         case 'button3':
         xhr.open('GET', 'learning_loop.html', true);
         xhr.onreadystatechange= function() {
