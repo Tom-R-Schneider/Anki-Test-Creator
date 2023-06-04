@@ -7,6 +7,7 @@ var selected_columns = {};
 var db;
 var zip;
 var used_models = {};
+curr_test_cards = {};
 
 // Function to process user file for further processing
 window.process_file_upload = async function(anki_file, callback) {
@@ -180,7 +181,7 @@ get_random_cards_of_deck = function(db, selected_decks, number_of_cards) {
 }
 
 // Function to create random cards to expose to user in an infinite loop
-window.start_learning_loop = function(decks, card_count, column_options, shown_rnd_counter, callback) {
+window.create_q_and_a_decks = function(decks, card_count, column_options, shown_rnd_counter, callback) {
     let deck_ids = [];
     for (let check_box_id in decks) {
         console.log(selected_decks);
@@ -194,10 +195,8 @@ window.start_learning_loop = function(decks, card_count, column_options, shown_r
 
     // Create question cards from answer cards
     random_cards.questions = get_question_flashcards(random_cards.answers, column_options, shown_rnd_counter);
+    curr_test_cards = random_cards;
     callback(random_cards);
-
-
-
 }
 
 // Function to create question cards from cards and user options
@@ -328,6 +327,13 @@ window.create_excels = function(db, selected_decks, columns, number_of_tests, nu
     }
 }
 
+window.get_question_cards = function() {
+    return curr_test_cards.questions;
+}
+
+window.get_answer_cards = function() {
+    return curr_test_cards.answers;
+}
 
 function unzipFile(inputZipFile, callback){
     // Create a new instance of the zip object
