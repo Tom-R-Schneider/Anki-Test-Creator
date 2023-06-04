@@ -362,8 +362,7 @@ window.create_html_from_json = function(input_json) {
         // Create html string
         let html_string = "";
         let counter = 0;
-        html_string += '<li><div>Your Decks</div>';
-        html_string += "<ul>";
+        html_string += '<ul class="tree">';
         
         for (let sub_item_name in input_json) {
             counter++;

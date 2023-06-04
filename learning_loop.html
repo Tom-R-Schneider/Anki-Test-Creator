@@ -1,44 +1,48 @@
-<script src="out.js"></script>
-<div class="file-input">
-    <input type="file" accept="apkg/*" id="file_input">
-    <button id="upload_button" class="btn btn-success" name="submit" type="submit" onclick="parse_input()"> Upload File </button>
-
-
-  </div>
-  <link rel="stylesheet" href="webpage_design.css">
-  <style>
-.container {
+<style>
+  .container {
     display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    text-align: left;
     align-items: center;
-   justify-content: center;
-   vertical-align: middle;
-}
-.scroll-container {
-      width: 400px;
-      height: 200px;
-      overflow-y: scroll;
-      margin-bottom: 20px;
-    }
-</style>​
-
-
-<div class="container">
-    <body>
-        <div class="scroll-container" id="deck_list">
-            <div>Please upload an apkg file</div>
-        </div>
-        <div class="scroll-container" id="column_names">
-          <div>Please upload an apkg file</div>
-        </div>
-        <div class="scroll-container" id="options">
-          <div><h1>Options</h1></div>
-          <div><input type="radio" id="all_cards" name="card_count" value="All cards in selection" checked><label for="days_duration">All cards in selection</label></div>
-          <div><input type="radio" id="selection_of_cards" name="card_count" value="Number of cards"><label for="number_of_cards_input">Number of cards: </label><input type="number" id="number_of_cards_input" name="number_of_cards"></div>
-          <div><label for="seconds_after_reveal_input">Seconds per Card: </label><input type="number" id="seconds_after_reveal_input" name="seconds_after_reveal" value="5"></div>
-          <div><label for="seconds_before_reveal_input">Seconds before reveal: </label><input type="number" id="seconds_before_reveal_input" name="seconds_before_reveal" value="5"></div>
-          <div><label for="random_column_count_input">How many randomized Columns should be shown: </label><input type="number" id="random_column_count_input" name="random_column_count" value="1"></div>
-        </div>
-      </body>
+    border: 1px solid black;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    padding-top:20px; 
+    padding-bottom:20px; 
+    flex-wrap: wrap;
+    max-width: 100%;
+    
+  
+  }
+  .container.div {
+      align-items: center;
+      justify-content: flex-start;
+      text-align: left;
+  }
+  .button_container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    text-align: left;
+    align-items: center;
+  }
+  
+</style>
+  
+<div class="container" id="deck_list">
+  <div><h1>Deck Graph</h1></div> 
+  Upload a file to display your deck graph 
+  <input type="file" accept="apkg/*" id="file_input" onchange="parse_input()">
 </div>
+<div class="container" id="column_names"><div ><h1>Deck Columns</h1></div>Upload a file and select a deck to display your deck graph</div>
 
-<button id="create_learning_plan" class="btn btn-success" name="Create Learning Plan" type="submit" onclick="create_learning_loop()"> Upload File </button>
+<div class="container" id="options">
+  <div><h1>Options</h1></div>
+  <div><input type="radio" id="all_cards" name="card_count" value="All cards in selection" checked><label for="days_duration">All cards in selection</label></div>
+  <div><input type="radio" id="selection_of_cards" name="card_count" value="Number of cards"><label for="number_of_cards_input">Number of cards: </label><input type="number" id="number_of_cards_input" name="number_of_cards"></div>
+  <div><label for="seconds_after_reveal_input">Seconds per Card: </label><input type="number" id="seconds_after_reveal_input" name="seconds_after_reveal" value="5"></div>
+  <div><label for="seconds_before_reveal_input">Seconds before reveal: </label><input type="number" id="seconds_before_reveal_input" name="seconds_before_reveal" value="5"></div>
+  <div><label for="random_column_count_input">How many randomized Columns should be shown: </label><input type="number" id="random_column_count_input" name="random_column_count" value="1"></div>
+</div>
+<div class="button_container"><button id="create_learning_plan" class="btn btn-success" name="Create Learning Loop" type="submit" onclick="create_learning_loop()"> Create Learning Loop </button></div>

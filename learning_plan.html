@@ -1,47 +1,26 @@
-<script src="out.js"></script>
-<div class="file-input">
-    <input type="file" accept="apkg/*" id="file_input">
-    <button id="upload_button" class="btn btn-success" name="submit" type="submit" onclick="parse_input()"> Upload File </button>
-
-
-  </div>
-  <link rel="stylesheet" href="webpage_design.css">
-  <style>
-.container {
-    display: flex;
-    align-items: center;
-   justify-content: center;
-   vertical-align: middle;
+<link rel="stylesheet" href="webpage_design.css">
+<style>.button_container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  text-align: left;
+  align-items: center;
 }
-.scroll-container {
-      width: 400px;
-      height: 200px;
-      overflow-y: scroll;
-      margin-bottom: 20px;
-    }
-</style>​
+</style>
 
-
-<div class="container">
-    <body>
-        <div class="scroll-container" id="deck_list">
-            
-        </div>
-        <div class="scroll-container" id="column_names">
-
-        </div>
-        <div class="scroll-container" id="options">
-          <div><h1>Options</h1></div>
-          <label for="start_date">Start Date:</label><input type="date" id="start_date" name="start_date">
-          <div><input type="radio" id="days_duration" name="learning_duration" value="number of days" checked><label for="days_duration">Number of Days: <input type="number" id="input_days" name="days" min="1"></label></div>
-          <div><input type="radio" id="date_duration" name="learning_duration" value="End Date"><label for="date_duration">End Date: </label><input type="date" id="end_date" name="end_date"></div>
-          <div><input type="checkbox" id="merge_bool" name="merge"><label for="date_duration">Merge decks</label></div>
-        </div>
-      </body>
+<div class="container" id="deck_list"><div ><h1>Deck Graph</h1></div> Upload a file to display your deck graph 
+  <input type="file" accept="apkg/*" id="file_input" onchange="parse_input()"></div>
+<div class="container" id="options">
+    <div ><h1>Options</h1></div>
+    <label for="start_date">Start Date:</label><input type="date" id="start_date" name="start_date">
+    <div ><input type="radio" id="days_duration" name="learning_duration" value="number of days" checked><label for="days_duration">Number of Days: <input type="number" id="input_days" name="days" min="1"></label></div>
+    <div ><input type="radio" id="date_duration" name="learning_duration" value="End Date"><label for="date_duration">End Date: </label><input type="date" id="end_date" name="end_date"></div>
+    <div ><input type="checkbox" id="merge_bool" name="merge"><label for="date_duration">Merge decks</label></div>
 </div>
+<div class="button_container"><button id="create_learning_plan" class="btn btn-success" name="Create Learning Plan" type="submit" onclick="create_learning_plan()"> Create Learning Plan </button></div>
 
-<button id="create_learning_plan" class="btn btn-success" name="Create Learning Plan" type="submit" onclick="create_learning_plan()"> Upload File </button>
-<!-- <div><a href="path_to_file" id="file_download" download="proposed_file_name">Download Anki File</a></div> -->
+
+</div>
 
 
 
